@@ -31,7 +31,7 @@ def main(args):
     model = BaselineLSTM(args)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device).half()
+    model.to(device)
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
