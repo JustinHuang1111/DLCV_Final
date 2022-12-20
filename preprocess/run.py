@@ -36,6 +36,7 @@ transform = transforms.Compose([transforms.ToTensor(),
 
 def main():   
     datapath = os.path.join(ROOT_DIR, "data", "student_data", "train")
+    print(datapath)
     videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
     audiopath = "./extracted_audio"
     train_dataset = ImagerLoader(datapath, audiopath, videopath, mode="train", transform=transform)
