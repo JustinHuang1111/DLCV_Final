@@ -26,9 +26,7 @@ class SequenceBatchSampler(Sampler):
         start = 0        
         while True:
             segment = self.data_source.segments[start]
-            print(segment)
             length = int(segment[-2] - segment[-3])
-            print("len: ", length)
             end = min(len(self.data_source.segments), start + max(int(self.batch_size / length), 1))
             self.batches.append(list(range(start, end)))
             if end == len(self.data_source.segments):

@@ -5,6 +5,6 @@ __pycache__
 /preprocess/log
 *.png
 *.wav
-
+/qsub_log
 
 

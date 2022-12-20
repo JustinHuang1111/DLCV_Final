@@ -1,0 +1,2 @@
+2022-12-20 11:14:06,738 Namespace(batch_size=400, checkpoint='evalai_test/best.pth', device_id=0, epochs=40, eval=False, exp_path='evalai_test/output', lr=0.0005, model='BaselineLSTM', num_workers=0, rank=0, test_data_path='./final_test_data', test_stride=1, train_file='../../social-interactions/data/split/train.list', train_stride=3, val_file='../../social-interactions/data/split/val.list', val_stride=1, weights=[0.266, 0.734])
+2022-12-20 11:14:06,739 Model: BaselineLSTM

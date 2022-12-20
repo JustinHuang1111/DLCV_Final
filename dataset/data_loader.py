@@ -140,11 +140,12 @@ def make_dataset(file_list, data_path):
             seg_length = end_frame - start_frame + 1
 
             ##### for setting maximum frame size and minimum frame size
-            if (
-            (seg_length <= 1)
-                or (personid == 0)
-            ):
-                continue
+            # if (
+            #     ("train" in file_list and seg_length < min_frames)
+            #     or (seg_length <= 1)
+            #     or (personid == 0)
+            # ):
+            #     continue
             # elif seg_length > max_frames:
             #     it = int(seg_length / max_frames)
             #     for i in range(it):
@@ -219,6 +220,7 @@ class ImagerLoader(torch.utils.data.Dataset):
 
                     if not os.path.isdir(f"./extracted_frames/{uid}"):
                         os.mkdir(f"./extracted_frames/{uid}")
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                     x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
                         
                     face = img[y1:y2, x1:x2, :]
