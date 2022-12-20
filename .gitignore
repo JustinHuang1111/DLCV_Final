@@ -1,0 +1,10 @@
+data/
+__pycache__
+*.sh
+/preprocess/qsub_log
+/preprocess/log
+*.png
+*.wav
+
+
+
