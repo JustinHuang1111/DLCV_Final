@@ -224,11 +224,19 @@ class BaselineLSTM(nn.Module):
 
     def _init_parameters(self):
         for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+            if isinstance(m, nn.Linear or nn.Conv2d):
+                m.weight.data = nn.init.xavier_uniform_(
+                    m.weight.data, gain=nn.init.calculate_gain("relu")
+                )
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        # elif isinstance(m, nn.BatchNorm2d):
+        #     nn.init.constant_(m.weight, 1)
+        #     nn.init.constant_(m.bias, 0)
 
 
 class GazeLSTM(nn.Module):
