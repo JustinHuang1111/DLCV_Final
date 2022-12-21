@@ -18,4 +18,4 @@ def create_logger(args):
     handler = logging.StreamHandler()
     logging.getLogger('').addHandler(handler)
 
-    return logger
+    return logger, time_fmt

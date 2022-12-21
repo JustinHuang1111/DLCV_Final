@@ -160,9 +160,9 @@ class test_PostProcessor():
     
 
 
-def save_checkpoint(state, save_path, is_best=False, is_dist=False):
+def save_checkpoint(state, save_path, is_best=False, is_dist=False, timestamp = ""):
 
-    save_path = f'{save_path}/checkpoint'
+    save_path = f'{save_path}/checkpoint/{timestamp}'
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 

@@ -24,7 +24,7 @@ def main(args):
     if not os.path.exists(args.exp_path):
         os.mkdir(args.exp_path)
 
-    logger = create_logger(args)
+    logger, timestamp = create_logger(args)
     logger.info(pprint.pformat(args))
 
     logger.info(f'Model: {args.model}')
@@ -98,7 +98,8 @@ def main(args):
                 'state_dict': model.state_dict(),
                 'mAP': mAP},
                 save_path=args.exp_path,
-                is_best=is_best)
+                is_best=is_best,
+                timestamp = timestamp)
 
 
     else:
