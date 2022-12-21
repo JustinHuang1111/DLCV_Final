@@ -53,4 +53,4 @@
 
 # installation
 - pip install -r requirements.txt
-- install ttm-best.pth
+- install ttm-best.pth at [checkpoint](https://drive.google.com/drive/folders/1MGrhm3J1dKoWPSL3RvC3qb3QeiIqe9vi?usp=sharing)
