@@ -1,20 +1,29 @@
 import os, sys, random, pprint
 
-sys.path.append('.')
+sys.path.append(".")
 import torch
 import torch.optim
 import torch.utils.data
+
 # import soundfile as sf
 from tqdm import tqdm
 from dataset.data_loader import ImagerLoader, test_ImagerLoader
+
 # from preprocess.dataset.test_loader import test_ImagerLoader
 from dataset.sampler import SequenceBatchSampler
 from model.model import BaselineLSTM, ViViT
 from config import argparser
 from common.logger import create_logger
 from common.engine import train, validate, evaluate
-from common.utils import PostProcessor, test_PostProcessor, get_transform, save_checkpoint, collate_fn
+from common.utils import (
+    PostProcessor,
+    test_PostProcessor,
+    get_transform,
+    save_checkpoint,
+    collate_fn,
+)
 from setup import ROOT_DIR
+
 
 def main(args):
     if torch.cuda.is_available():
@@ -27,13 +36,12 @@ def main(args):
     logger, timestamp = create_logger(args)
     logger.info(pprint.pformat(args))
 
-    logger.info(f'Model: {args.model}')
+    logger.info(f"Model: {args.model}")
     if args.model == "BaselineLSTM":
         model = BaselineLSTM(args)
     elif args.model == "ViViT":
         model = ViViT()
-    
-    
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     model.to(device)
@@ -44,83 +52,105 @@ def main(args):
     videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
     if not args.eval:
         datapath = os.path.join(ROOT_DIR, "data", "student_data", "train")
-        train_dataset = ImagerLoader(datapath, videopath, args.train_file, args.maxframe, args.minframe , mode="train", transform=get_transform(True), img_size = args.img_size)
+        train_dataset = ImagerLoader(
+            datapath,
+            videopath,
+            args.train_file,
+            args.maxframe,
+            args.minframe,
+            mode="train",
+            transform=get_transform(True),
+            img_size=args.img_size,
+        )
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_sampler=SequenceBatchSampler(train_dataset, args.batch_size),
             num_workers=args.num_workers,
             collate_fn=collate_fn,
-            pin_memory=False)
+            pin_memory=False,
+        )
 
         class_weights = torch.FloatTensor(args.weights).to(device)
         criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 
         optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
-        val_dataset = ImagerLoader(datapath, videopath, args.val_file, args.maxframe, args.minframe,mode="val", transform=get_transform(False), img_size = args.img_size)
+        val_dataset = ImagerLoader(
+            datapath,
+            videopath,
+            args.val_file,
+            args.maxframe,
+            args.minframe,
+            mode="val",
+            transform=get_transform(False),
+            img_size=args.img_size,
+        )
 
         val_loader = torch.utils.data.DataLoader(
-            val_dataset,
-            batch_size=1,
-            num_workers=args.num_workers,
-            pin_memory=False)
+            val_dataset, batch_size=1, num_workers=args.num_workers, pin_memory=False
+        )
     else:
         datapath = os.path.join(ROOT_DIR, "data", "student_data", "test")
-        test_dataset = test_ImagerLoader(datapath, videopath, args.maxframe, args.minframe, mode="test", transform=get_transform(False), img_size = args.img_size)
+        test_dataset = test_ImagerLoader(
+            datapath,
+            videopath,
+            args.maxframe,
+            args.minframe,
+            mode="test",
+            transform=get_transform(False),
+            img_size=args.img_size,
+        )
 
         test_loader = torch.utils.data.DataLoader(
             test_dataset,
             shuffle=False,
             batch_size=1,
             num_workers=args.num_workers,
-            pin_memory=False)
+            pin_memory=False,
+        )
 
     best_mAP = 0
 
     if not args.eval:
-        logger.info('start training')
+        logger.info("start training")
         if args.model == "ViViT":
             logger.info(f"loading model {args.checkpoint}")
             model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
         for epoch in range(args.epochs):
-            
+
             train_loader.batch_sampler.set_epoch(epoch)
             # train for one epoch
             train(train_loader, model, criterion, optimizer, epoch, device)
 
-            save_checkpoint({
-                'epoch': epoch,
-                'state_dict': model.state_dict(),
-                'mAP': 0},
+            save_checkpoint(
+                {"epoch": epoch, "state_dict": model.state_dict(), "mAP": 0},
                 save_path=args.exp_path,
                 is_best=False,
-                timestamp = timestamp)
+                timestamp=timestamp,
+            )
             # TODO: implement distributed evaluation
             # evaluate on validation set
             postprocess = PostProcessor(args)
             mAP = validate(val_loader, model, postprocess)
 
-            
             # remember best mAP in validation and save checkpoint
             is_best = mAP > best_mAP
             best_mAP = max(mAP, best_mAP)
-            logger.info(f'mAP: {mAP:.4f} best mAP: {best_mAP:.4f}')
+            logger.info(f"mAP: {mAP:.4f} best mAP: {best_mAP:.4f}")
 
-            save_checkpoint({
-                'epoch': epoch,
-                'state_dict': model.state_dict(),
-                'mAP': mAP},
+            save_checkpoint(
+                {"epoch": epoch, "state_dict": model.state_dict(), "mAP": mAP},
                 save_path=args.exp_path,
                 is_best=is_best,
-                timestamp = timestamp)
-
+                timestamp=timestamp,
+            )
 
     else:
         if args.model == "ViViT":
             print(f"loading model {args.checkpoint}")
             model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
-        logger.info('start evaluating')
+        logger.info("start evaluating")
         postprocess = test_PostProcessor(args)
         evaluate(test_loader, model, postprocess)
         postprocess.mkfile()
@@ -152,7 +182,6 @@ def main(args):
 #     main(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = argparser.parse_args()
     main(args)
-

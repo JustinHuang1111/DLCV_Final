@@ -16,15 +16,24 @@ logger = logging.getLogger(__name__)
 
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.0):
         super().__init__()
         self.layers = nn.ModuleList([])
         self.norm = nn.LayerNorm(dim)
         for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
-            ]))
+            self.layers.append(
+                nn.ModuleList(
+                    [
+                        PreNorm(
+                            dim,
+                            Attention(
+                                dim, heads=heads, dim_head=dim_head, dropout=dropout
+                            ),
+                        ),
+                        PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout)),
+                    ]
+                )
+            )
 
     def forward(self, x):
         for attn, ff in self.layers:
@@ -32,44 +41,70 @@ class Transformer(nn.Module):
             x = ff(x) + x
         return self.norm(x)
 
-class VisionEncoder(nn.Module):
 
-    def __init__(self, pretrained_model='vit_base_resnet26d_224', feature_dim=256):
+class VisionEncoder(nn.Module):
+    def __init__(self, pretrained_model="vit_base_resnet26d_224", feature_dim=256):
         super(VisionEncoder, self).__init__()
         self.vit = timm.create_model(pretrained_model, pretrained=True)
         self.match_size = nn.Linear(1024, feature_dim)
 
-    
     def forward(self, x):
         x = self.vit.forward_features(x)
         x = self.match_size(x)
         return x
 
 
-  
 class ViViT(nn.Module):
-    def __init__(self, image_size=224, patch_size=16, num_classes=2, num_frames=400, dim = 512, depth = 4, heads = 3, pool = 'cls', in_channels = 3, dim_head = 64, dropout = 0.,
-                 emb_dropout = 0., scale_dim = 4, ):
+    def __init__(
+        self,
+        image_size=224,
+        patch_size=16,
+        num_classes=2,
+        num_frames=400,
+        dim=512,
+        depth=4,
+        heads=3,
+        pool="cls",
+        in_channels=3,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+        scale_dim=4,
+    ):
         super().__init__()
-        
-        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
+        assert pool in {
+            "cls",
+            "mean",
+        }, "pool type must be either cls (cls token) or mean (mean pooling)"
 
-        assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
+        assert (
+            image_size % patch_size == 0
+        ), "Image dimensions must be divisible by the patch size."
         num_patches = (image_size // patch_size) ** 2
-        patch_dim = in_channels * patch_size ** 2
+        patch_dim = in_channels * patch_size**2
         self.to_patch_embedding = nn.Sequential(
-            Rearrange('b t c (h p1) (w p2) -> b t (h w) (p1 p2 c)', p1 = patch_size, p2 = patch_size),
+            Rearrange(
+                "b t c (h p1) (w p2) -> b t (h w) (p1 p2 c)",
+                p1=patch_size,
+                p2=patch_size,
+            ),
             nn.Linear(patch_dim, dim),
         )
 
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_frames, num_patches + 1, dim))
+        self.pos_embedding = nn.Parameter(
+            torch.randn(1, num_frames, num_patches + 1, dim)
+        )
         self.space_token = nn.Parameter(torch.randn(1, 1, dim))
-        self.space_transformer = Transformer(dim, depth, heads, dim_head, dim*scale_dim, dropout)
+        self.space_transformer = Transformer(
+            dim, depth, heads, dim_head, dim * scale_dim, dropout
+        )
         # self.space_transformer = VisionEncoder(feature_dim=dim*scale_dim)
 
         self.temporal_token = nn.Parameter(torch.randn(1, 1, dim))
-        self.temporal_transformer = Transformer(dim, depth, heads, dim_head, dim*scale_dim, dropout)
+        self.temporal_transformer = Transformer(
+            dim, depth, heads, dim_head, dim * scale_dim, dropout
+        )
         # self.temporal_transformer = VisionEncoder(feature_dim=dim*scale_dim)
 
         self.audio_encoder = ResNetSE()
@@ -78,8 +113,8 @@ class ViViT(nn.Module):
         self.pool = pool
 
         self.mlp_head = nn.Sequential(
-            nn.LayerNorm(dim*2),
-            nn.Linear(dim*2, dim // 2),
+            nn.LayerNorm(dim * 2),
+            nn.Linear(dim * 2, dim // 2),
             nn.ReLU(),
             nn.Linear(dim // 2, num_classes),
         )
@@ -90,27 +125,27 @@ class ViViT(nn.Module):
         # [b, t, (h/patch_size)*(w/patch_size), dim]
         b, t, n, _ = x.shape
 
-        cls_space_tokens = repeat(self.space_token, '() n d -> b t n d', b = b, t=t)
+        cls_space_tokens = repeat(self.space_token, "() n d -> b t n d", b=b, t=t)
         x = torch.cat((cls_space_tokens, x), dim=2)
 
-        x += self.pos_embedding[:, t, :(n + 1)]
+        x += self.pos_embedding[:, t, : (n + 1)]
         x = self.dropout(x)
         # [b, t, (h/patch_size)*(w/patch_size) + 1, dim]
 
-        x = rearrange(x, 'b t n d -> (b t) n d') 
+        x = rearrange(x, "b t n d -> (b t) n d")
         # [b*t, n, d]
         x = self.space_transformer(x)
         # [b*t, n, d]
-        x = rearrange(x[:, 0], '(b t) ... -> b t ...', b=b)
+        x = rearrange(x[:, 0], "(b t) ... -> b t ...", b=b)
         # [b, t, d]
 
-        cls_temporal_tokens = repeat(self.temporal_token, '() n d -> b n d', b=b)
+        cls_temporal_tokens = repeat(self.temporal_token, "() n d -> b n d", b=b)
         x = torch.cat((cls_temporal_tokens, x), dim=1)
         # [b, t+1, d]
 
         x = self.temporal_transformer(x)
         # [b, t+1, d]
-        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
         # [b, d]
         print(x.size())
 
@@ -120,22 +155,28 @@ class ViViT(nn.Module):
         whole_feature = torch.cat((x, audio_out), dim=1)
         print(whole_feature.size())
 
-
         return self.mlp_head(whole_feature)
-    
 
 
 class BaselineLSTM(nn.Module):
     def __init__(self, args):
         super(BaselineLSTM, self).__init__()
         self.args = args
-        self.img_feature_dim = 256  # the dimension of the CNN feature to represent each frame
+        self.img_feature_dim = (
+            256  # the dimension of the CNN feature to represent each frame
+        )
 
         self.video_encoder = resnet18(pretrained=False)
 
-        self.video_encoder.fc2 = nn.Linear(1000, self.img_feature_dim)
+        self.video_encodxeer.fc2 = nn.Linear(1000, self.img_feature_dim)
 
-        self.lstm = nn.LSTM(self.img_feature_dim, self.img_feature_dim, bidirectional=True ,num_layers=2, batch_first=True)
+        self.lstm = nn.LSTM(
+            self.img_feature_dim,
+            self.img_feature_dim,
+            bidirectional=True,
+            num_layers=2,
+            batch_first=True,
+        )
 
         self.audio_encoder = ResNetSE()
 
@@ -146,15 +187,15 @@ class BaselineLSTM(nn.Module):
 
         for param in self.parameters():
             param.requires_grad = True
-        
+
         self._init_parameters()
-        
+
         self.load_checkpoint()
 
     def forward(self, video, audio):
         N, D, C, H, W = video.shape
 
-        video_out = self.video_encoder(video.view(N*D, C, H, W))
+        video_out = self.video_encoder(video.view(N * D, C, H, W))
         video_out = video_out.view(N, D, self.img_feature_dim)
 
         lstm_out, _ = self.lstm(video_out)
@@ -171,18 +212,20 @@ class BaselineLSTM(nn.Module):
     def load_checkpoint(self):
         if self.args.checkpoint is not None:
             if os.path.exists(self.args.checkpoint):
-                logger.info(f'loading checkpoint {self.args.checkpoint}')
-                state = torch.load(self.args.checkpoint, map_location=f'cuda:{self.args.rank}')
-                if 'module' in list(state["state_dict"].keys())[0]:
-                    state_dict = { k[7:]: v for k, v in state["state_dict"].items() }
+                logger.info(f"loading checkpoint {self.args.checkpoint}")
+                state = torch.load(
+                    self.args.checkpoint, map_location=f"cuda:{self.args.rank}"
+                )
+                if "module" in list(state["state_dict"].keys())[0]:
+                    state_dict = {k[7:]: v for k, v in state["state_dict"].items()}
                 else:
                     state_dict = state["state_dict"]
                 self.load_state_dict(state_dict)
-        
+
     def _init_parameters(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -192,52 +235,61 @@ class GazeLSTM(nn.Module):
     def __init__(self, args):
         super(GazeLSTM, self).__init__()
         self.args = args
-        self.img_feature_dim = 256  # the dimension of the CNN feature to represent each frame
+        self.img_feature_dim = (
+            256  # the dimension of the CNN feature to represent each frame
+        )
 
         self.video_encoder = resnet18(pretrained=True)
 
         self.video_encoder.fc2 = nn.Linear(1000, self.img_feature_dim)
 
-        self.lstm = nn.LSTM(self.img_feature_dim, self.img_feature_dim,bidirectional=True,num_layers=2,batch_first=True)
+        self.lstm = nn.LSTM(
+            self.img_feature_dim,
+            self.img_feature_dim,
+            bidirectional=True,
+            num_layers=2,
+            batch_first=True,
+        )
 
         # The linear layer that maps the LSTM with the 3 outputs
-        self.last_layer = nn.Linear(2*self.img_feature_dim, 3)
+        self.last_layer = nn.Linear(2 * self.img_feature_dim, 3)
         self.load_checkpoint()
 
     def forward(self, video):
 
         video_out = self.video_encoder(video.view((-1, 3) + video.size()[-2:]))
 
-        video_out = video_out.view(video.size(0),7,self.img_feature_dim)
+        video_out = video_out.view(video.size(0), 7, self.img_feature_dim)
 
         lstm_out, _ = self.lstm(video_out)
-        lstm_out = lstm_out[:,3,:]
-        output = self.last_layer(lstm_out).view(-1,3)
+        lstm_out = lstm_out[:, 3, :]
+        output = self.last_layer(lstm_out).view(-1, 3)
 
+        angular_output = output[:, :2]
+        angular_output[:, 0:1] = math.pi * nn.Tanh()(angular_output[:, 0:1])
+        angular_output[:, 1:2] = (math.pi / 2) * nn.Tanh()(angular_output[:, 1:2])
 
-        angular_output = output[:,:2]
-        angular_output[:,0:1] = math.pi*nn.Tanh()(angular_output[:,0:1])
-        angular_output[:,1:2] = (math.pi/2)*nn.Tanh()(angular_output[:,1:2])
-
-        var = math.pi*nn.Sigmoid()(output[:,2:3])
-        var = var.view(-1,1).expand(var.size(0),2)
+        var = math.pi * nn.Sigmoid()(output[:, 2:3])
+        var = var.view(-1, 1).expand(var.size(0), 2)
 
         return angular_output, var
 
     def load_checkpoint(self):
         if self.args.checkpoint is not None:
             if os.path.exists(self.args.checkpoint):
-                logger.info(f'loading checkpoint {self.args.checkpoint}')
-                map_loc = f'cuda:{self.args.rank}' if torch.cuda.is_available() else 'cpu'
+                logger.info(f"loading checkpoint {self.args.checkpoint}")
+                map_loc = (
+                    f"cuda:{self.args.rank}" if torch.cuda.is_available() else "cpu"
+                )
                 state = torch.load(self.args.checkpoint, map_location=map_loc)
-                if 'module' in list(state["state_dict"].keys())[0]:
-                    state_dict = { k[7:]: v for k, v in state["state_dict"].items() }
+                if "module" in list(state["state_dict"].keys())[0]:
+                    state_dict = {k[7:]: v for k, v in state["state_dict"].items()}
                 else:
                     state_dict = state["state_dict"]
                 self.load_state_dict(state_dict)
 
 
-if __name__ == '__main__':
-    video_test = torch.FloatTensor(4,21,224,224)
+if __name__ == "__main__":
+    video_test = torch.FloatTensor(4, 21, 224, 224)
     model_test = BaselineLSTM()
     out = model_test.forward(video_test)
