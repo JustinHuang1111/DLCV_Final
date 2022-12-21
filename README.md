@@ -1,20 +1,56 @@
 # File structure
-- Final project
-    - data
-        - student_data 
-            - test
-            - train
-            - videos
-            sample_submission.csv
+```bash
 
-    - preprocess
-        - dataset 
-            - __init__.py
-            - data_loader.py
-            - sampler.py
-        - extract_audio.py
-        - extract_frames.py
-        - run.py
-        - video.py
-    - setup.py
-    - readme.md
+├── common
+│   ├── engine.py
+│   ├── __init__.py
+│   ├── logger.py
+│   ├── metrics.py
+│   ├── render.py
+│   └── utils.py
+├── config.py
+├── dataset
+│   ├── data_loader.py
+│   ├── __init__.py
+│   └── sampler.py
+├── extracted_frames
+├── extracted_audio
+├── evalai_test
+│   ├── ttm-best.pth # need to download
+│   ├── checkpoint
+│   │   └── tmp.txt
+│   └── output
+│       └── tmp
+├── model
+│   ├── __init__.py
+│   ├── model.py
+│   ├── resnet.py
+│   └── resse.py
+├── preprocess
+│   ├── dataset
+│   │   ├── data_loader.py
+│   │   ├── __init__.py
+│   │   ├── sampler.py
+│   │   └── split
+│   │       ├── train.list
+│   │       └── val.list
+│   ├── extract_audio.py
+│   ├── extract_frames.py
+│   ├── run.py
+│   └── video_crop.py
+├── README.md
+├── requirements.txt
+├── run.py
+├── scripts
+│   ├── download_clips.py
+│   ├── get_json.py
+│   ├── get_lam_result.py
+│   ├── get_ttm_result.py
+│   ├── merge.py
+│   └── preprocessing.py
+└── setup.py
+```
+
+# installation
+- pip install -r requirements.txt
+- install ttm-best.pth
