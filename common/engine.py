@@ -10,7 +10,7 @@ from common.utils import AverageMeter
 logger = logging.getLogger(__name__)
 
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, device):
     logger.info('training')
     batch_time = AverageMeter()
     data_time = AverageMeter()
@@ -27,15 +27,17 @@ def train(train_loader, model, criterion, optimizer, epoch):
         video = video.cuda()
         audio = audio.cuda()
         target = target.cuda()
-
         # compute output
         output = model(video, audio)
 
         # from common.render import visualize_gaze
         # for i in range(32):
         #     visualize_gaze(video, output[0], index=i, title=str(i))
-
-        loss = criterion(output, target)
+        print(video.device)
+        print(audio.device)
+        print(target.device)
+        print(output.device)
+        loss = criterion(output, target.to(device))
 
         optimizer.zero_grad()
         loss.backward()

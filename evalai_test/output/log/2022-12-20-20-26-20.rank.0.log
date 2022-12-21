@@ -1,8 +1,0 @@
-2022-12-20 20:26:20,188 Namespace(batch_size=16, checkpoint='evalai_test/best.pth', device_id=2, epochs=40, eval=False, exp_path='evalai_test/output', lr=0.0005, model='BaselineLSTM', num_workers=0, rank=0, test_data_path='./final_test_data', test_stride=1, train_file='../../social-interactions/data/split/train.list', train_stride=3, val_file='../../social-interactions/data/split/val.list', val_stride=1, weights=[0.266, 0.734])
-2022-12-20 20:26:20,189 Model: BaselineLSTM
-2022-12-20 20:37:59,554 start training
-2022-12-20 20:37:59,555 training
-2022-12-20 20:38:02,398 /home/eegroup/ee50526/b09901062/Final/preprocess/dataset/data_loader.py:281: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  return torch.tensor(crop_audio, dtype=torch.float32)
-
-2022-12-20 20:38:07,292 Epoch: [0][0/24337]	Time 7.736 (7.736)	Data 2.847 (2.847)	Loss 0.6906 (0.6906)	

@@ -30,17 +30,19 @@ def main(args):
     logger.info(f'Model: {args.model}')
     model = BaselineLSTM(args)
     
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
     model.to(device)
 
     torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.benchmark = False
 
     if not args.eval:
         datapath = os.path.join(ROOT_DIR, "data", "student_data", "train")
         videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
         audiopath = "./extracted_audio"
-        train_dataset = ImagerLoader(datapath, audiopath, videopath, mode="train", transform=get_transform(True))
+        train_dataset = ImagerLoader(datapath, audiopath, videopath, args.train_file, mode="train", transform=get_transform(True))
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -49,18 +51,18 @@ def main(args):
             collate_fn=collate_fn,
             pin_memory=False)
 
-        class_weights = torch.FloatTensor(args.weights).cuda()
+        class_weights = torch.FloatTensor(args.weights).to(device)
         criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 
         optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
-        # val_dataset = ImagerLoader(datapath, audiopath, videopath, mode="train", transform=get_transform(False))
+        val_dataset = ImagerLoader(datapath, audiopath, videopath, args.val_file,mode="val", transform=get_transform(False))
 
-        # val_loader = torch.utils.data.DataLoader(
-        #     val_dataset,
-        #     batch_size=1,
-        #     num_workers=args.num_workers,
-        #     pin_memory=False)
+        val_loader = torch.utils.data.DataLoader(
+            val_dataset,
+            batch_size=1,
+            num_workers=args.num_workers,
+            pin_memory=False)
     else:
         test_dataset = test_ImagerLoader(args.test_data_path, args.seg_info, transform=get_transform(False))
 
@@ -78,25 +80,25 @@ def main(args):
 
             train_loader.batch_sampler.set_epoch(epoch)
             # train for one epoch
-            train(train_loader, model, criterion, optimizer, epoch)
+            train(train_loader, model, criterion, optimizer, epoch, device)
 
             # TODO: implement distributed evaluation
             # evaluate on validation set
             postprocess = PostProcessor(args)
-            # mAP = validate(val_loader, model, postprocess)
+            mAP = validate(val_loader, model, postprocess)
 
             
             # remember best mAP in validation and save checkpoint
-            # is_best = mAP > best_mAP
-            # best_mAP = max(mAP, best_mAP)
-            # logger.info(f'mAP: {mAP:.4f} best mAP: {best_mAP:.4f}')
+            is_best = mAP > best_mAP
+            best_mAP = max(mAP, best_mAP)
+            logger.info(f'mAP: {mAP:.4f} best mAP: {best_mAP:.4f}')
 
-            # save_checkpoint({
-            #     'epoch': epoch,
-            #     'state_dict': model.state_dict(),
-            #     'mAP': mAP},
-            #     save_path=args.exp_path,
-            #     is_best=is_best)
+            save_checkpoint({
+                'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'mAP': mAP},
+                save_path=args.exp_path,
+                is_best=is_best)
 
 
     else:

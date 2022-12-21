@@ -159,8 +159,11 @@ def make_dataset(file_list, data_path):
     return segments, face_crop
 
 
-def makeFileList(data_path):
-    return [x.split("_")[0] for x in os.listdir(os.path.join(data_path, "seg"))]
+def makeFileList(filepath):
+    with open(filepath, "r") as f:
+        videos = f.readlines()
+    return [uid.strip() for uid in videos]
+        
 
 
 class ImagerLoader(torch.utils.data.Dataset):
@@ -169,12 +172,14 @@ class ImagerLoader(torch.utils.data.Dataset):
         data_path,
         audio_path,
         video_path,
+        file_path,
         mode="train",
         transform=None,
     ):
         self.audio_path = audio_path
         self.video_path = video_path
-        self.file_list = makeFileList(data_path)
+        self.file_path = file_path
+        self.file_list = makeFileList(self.file_path)
         print(f"{mode} file with length: {str(len(self.file_list))}")
 
         segments, face_crop = make_dataset(self.file_list, data_path)
@@ -194,6 +199,7 @@ class ImagerLoader(torch.utils.data.Dataset):
         return len(self.segments)
 
     def _get_video(self, index, debug=False):
+        video_size = 128
         uid, personid, _, start_frame, end_frame, _ = self.segments[index]
         cap = cv2.VideoCapture(os.path.join(self.video_path, f"{uid}.mp4"))
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
@@ -208,13 +214,13 @@ class ImagerLoader(torch.utils.data.Dataset):
                 bbox = self.face_crop[uid][key]
                 if os.path.isfile(f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png"):
                     img = cv2.imread(f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png")
-                    face = cv2.resize(img, (224, 224))
+                    face = cv2.resize(img, (video_size, video_size))
                 else:
                     ret, img = cap.read()
 
                     if not ret:
                         print("not ret")
-                        video.append(np.zeros((1, 224, 224, 3), dtype=np.uint8))
+                        video.append(np.zeros((1,video_size, video_size, 3), dtype=np.uint8))
                         continue
 
                     if not os.path.isdir(f"./extracted_frames/{uid}"):
@@ -226,10 +232,10 @@ class ImagerLoader(torch.utils.data.Dataset):
                         print(f"{uid}/write: {i:05d}_{personid}")
                         cv2.imwrite(f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png", face)
                 try:
-                    face = cv2.resize(face, (224, 224))
+                    face = cv2.resize(face, (video_size, video_size))
                 except:
                     # bad bbox
-                    face = np.zeros((224, 224, 3), dtype=np.uint8)
+                    face = np.zeros((video_size, video_size, 3), dtype=np.uint8)
 
                 if debug:
                     import matplotlib.pyplot as plt
@@ -240,7 +246,7 @@ class ImagerLoader(torch.utils.data.Dataset):
                 video.append(np.expand_dims(face, axis=0))
             else:
                 print("not in face crop")
-                video.append(np.zeros((1, 224, 224, 3), dtype=np.uint8))
+                video.append(np.zeros((1, video_size, video_size, 3), dtype=np.uint8))
                 continue
         cap.release()
         video = np.concatenate(video, axis=0)

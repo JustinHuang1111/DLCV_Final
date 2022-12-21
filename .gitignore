@@ -6,5 +6,5 @@ __pycache__
 *.png
 *.wav
 /qsub_log
-
+/evalai_test/output/log/
 
