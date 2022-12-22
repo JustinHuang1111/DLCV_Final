@@ -19,6 +19,12 @@ argparser.add_argument(
 argparser.add_argument(
     "--val_file", type=str, default="./dataset/split/val.list", help="Validation list"
 )
+argparser.add_argument(
+    "--test_file",
+    type=str,
+    default="./preprocess/dataset/split/test.list",
+    help="Validation list",
+)
 # argparser.add_argument('--test_file', type=str, default='./test.list', help='Test list')
 argparser.add_argument(
     "--train_stride", type=int, default=3, help="Train subsampling rate"

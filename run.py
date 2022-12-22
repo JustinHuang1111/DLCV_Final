@@ -134,7 +134,7 @@ def main(args):
             # TODO: implement distributed evaluation
             # evaluate on validation set
             postprocess = PostProcessor(args)
-            mAP = validate(val_loader, model, postprocess)
+            mAP = validate(val_loader, model, postprocess, device)
 
             # remember best mAP in validation and save checkpoint
             is_best = mAP > best_mAP
@@ -153,8 +153,10 @@ def main(args):
             print(f"loading model {args.checkpoint}")
             model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
         logger.info("start evaluating")
-        postprocess = test_PostProcessor(args)
-        evaluate(test_loader, model, postprocess, device)
+        # postprocess = test_PostProcessor(args)
+        postprocess = PostProcessor(args)
+        mAP = validate(test_loader, model, postprocess, device)
+        print("Score mAP:", mAP)
         postprocess.mkfile()
 
 

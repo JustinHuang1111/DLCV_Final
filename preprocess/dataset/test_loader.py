@@ -161,45 +161,97 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         return len(self.segments)
 
     def _get_video(self, index, debug=False):
-        sid, _, vid_path, start_frame, end_frame = self.segments[index]
+        video_size = 128
+        uid, personid, _, start_frame, end_frame, _ = self.segments[index]
+        cap = cv2.VideoCapture(os.path.join(self.video_path, f"{uid}.mp4"))
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         video = []
-        print("vid path: ", vid_path)
-        if os.path.exists(vid_path):
-            fid2path = {}
-            for img_path in os.listdir(vid_path):
-                fid = int(img_path.split(".")[0])
-                fid2path[fid] = os.path.join(vid_path, img_path)
-
-            for fid in range(start_frame, end_frame + 1):
-                if fid in fid2path.keys():
-                    img = cv2.imread(fid2path[fid])
-                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        for i in range(start_frame, end_frame + 1):
+            key = str(i) + ":" + str(personid)
+            # print("key: ", key)
+            # print("face: ", dict(list(self.face_crop[uid].items())[:3]))
+            if key in self.face_crop[uid].keys():
+                bbox = self.face_crop[uid][key]
+                if os.path.isfile(
+                    f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png"
+                ):
+                    img = cv2.imread(
+                        f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png"
+                    )
+                    face = cv2.resize(img, (video_size, video_size))
                 else:
-                    img = np.zeros((224, 224, 3), dtype=np.uint8)
+                    ret, img = cap.read()
+
+                    if not ret:
+                        print("not ret")
+                        video.append(
+                            np.zeros((1, video_size, video_size, 3), dtype=np.uint8)
+                        )
+                        continue
+
+                    if not os.path.isdir(f"./extracted_frames/{uid}"):
+                        os.mkdir(f"./extracted_frames/{uid}")
+                    x1, y1, x2, y2 = (
+                        int(bbox[0]),
+                        int(bbox[1]),
+                        int(bbox[2]),
+                        int(bbox[3]),
+                    )
+
+                    face = img[y1:y2, x1:x2, :]
+                    if face.size != 0:
+                        print(f"{uid}/write: {i:05d}_{personid}")
+                        cv2.imwrite(
+                            f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png", face
+                        )
+                try:
+                    face = cv2.resize(face, (video_size, video_size))
+                except:
+                    # bad bbox
+                    face = np.zeros((video_size, video_size, 3), dtype=np.uint8)
 
                 if debug:
                     import matplotlib.pyplot as plt
 
-                    plt.imshow(img)
+                    plt.imshow(face)
                     plt.show()
-                video.append(np.expand_dims(img, axis=0))
 
-        else:
-            for fid in range(self.seg_info[sid]["frame_num"]):
-                video.append(np.zeros((1, 224, 224, 3), dtype=np.uint8))
-
+                video.append(np.expand_dims(face, axis=0))
+            else:
+                print("not in face crop")
+                video.append(np.zeros((1, video_size, video_size, 3), dtype=np.uint8))
+                continue
+        cap.release()
         video = np.concatenate(video, axis=0)
         if self.transform:
             video = torch.cat([self.transform(f).unsqueeze(0) for f in video], dim=0)
+        print("[get video] video shape: ", video.shape)
         return video
 
     def _get_audio(self, index):
-        _, aud_path, _, start_frame, end_frame = self.segments[index]
-        print("aud path: ", aud_path)
-        audio, sample_rate = soundfile.read(aud_path)
-        onset = int(start_frame / 30 * sample_rate)
-        offset = int(end_frame / 30 * sample_rate)
-        crop_audio = normalize(audio[onset:offset])
+        uid, _, _, start_frame, end_frame, _ = self.segments[index]
+        if not os.path.isfile(os.path.join(self.audio_path, f"{uid}.wav")):
+            audiovideo = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
+            audio = video.audio
+            audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
+
+        audio, sample_rate = torchaudio.load(
+            f"{self.audio_path}/{uid}.wav", normalize=True
+        )
+
+        transform = torchaudio.transforms.Resample(sample_rate, 16000)
+        audio = transform(audio)
+        # transform = torchaudio.transforms.DownmixMono(channels_first=True)
+        # audio = transform(audio)
+        audio = torch.mean(audio, dim=0)
+
+        onset = int(start_frame / 30 * 16000)
+        offset = int(end_frame / 30 * 16000)
+        crop_audio = audio[onset:offset]
+
+        # print("[get audio] crop audio shape", crop_audio.shape)
         # if self.mode == 'eval':
         # l = offset - onset
         # crop_audio = np.zeros(l)
@@ -209,4 +261,12 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         #     crop_audio = normalize(audio[onset: offset])
         # else:
         #     crop_audio = normalize(audio[onset: offset])
-        return torch.tensor(crop_audio, dtype=torch.float32)
+        # return torch.tensor(crop_audio, dtype=torch.float32)
+        print("[get audio] audio shape: ", audio.shape)
+        return crop_audio.to(torch.float32)
+
+    def _get_target(self, index):
+        if self.mode == "train":
+            return torch.LongTensor([self.segments[index][2]])
+        else:
+            return self.segments[index]

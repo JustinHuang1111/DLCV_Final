@@ -4,7 +4,7 @@ import torch
 import torch.optim
 import torch.utils.data
 import torch.nn.functional as F
-import tqdm
+from tqdm import tqdm
 from common.utils import AverageMeter
 
 
@@ -21,7 +21,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
 
     end = time.time()
 
-    for i, (video, audio, target) in enumerate(train_loader):
+    for i, (video, audio, target) in tqdm(train_loader):
 
         # measure data loading time
         data_time.update(time.time() - end)
@@ -34,10 +34,10 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
         # from common.render import visualize_gaze
         # for i in range(32):
         #     visualize_gaze(video, output[0], index=i, title=str(i))
-        print(video.device)
-        print(audio.device)
-        print(target.device)
-        print(output.device)
+        # print(video.device)
+        # print(audio.device)
+        # print(target.device)
+        # print(output.device)
         loss = criterion(output, target.to(device))
 
         optimizer.zero_grad()
@@ -65,16 +65,17 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             )
 
 
-def validate(val_loader, model, postprocess):
+def validate(val_loader, model, postprocess, device):
     logger.info("evaluating")
     batch_time = AverageMeter()
+    model.to(device)
     model.eval()
     end = time.time()
 
-    for i, (video, audio, target) in enumerate(val_loader):
+    for i, (video, audio, target) in enumerate(tqdm(val_loader)):
 
-        video = video.cuda()
-        audio = audio.cuda()
+        video = video.to(device)
+        audio = audio.to(device)
 
         with torch.no_grad():
             output = model(video, audio)

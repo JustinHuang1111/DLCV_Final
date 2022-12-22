@@ -262,7 +262,7 @@ class ImagerLoader(torch.utils.data.Dataset):
         video = np.concatenate(video, axis=0)
         if self.transform:
             video = torch.cat([self.transform(f).unsqueeze(0) for f in video], dim=0)
-        print("[get video] video shape: ", video.shape)
+        # print("[get video] video shape: ", video.shape)
         return video
 
     def _get_audio(self, index):
@@ -286,7 +286,7 @@ class ImagerLoader(torch.utils.data.Dataset):
         offset = int(end_frame / 30 * 16000)
         crop_audio = audio[onset:offset]
 
-        print("[get audio] crop audio shape", crop_audio.shape)
+        # print("[get audio] crop audio shape", crop_audio.shape)
         # if self.mode == 'eval':
         # l = offset - onset
         # crop_audio = np.zeros(l)
@@ -296,7 +296,8 @@ class ImagerLoader(torch.utils.data.Dataset):
         #     crop_audio = normalize(audio[onset: offset])
         # else:
         #     crop_audio = normalize(audio[onset: offset])
-        return torch.tensor(crop_audio, dtype=torch.float32)
+        return crop_audio.to(torch.float32)
+        # return torch.tensor(crop_audio, dtype=torch.float32)
 
     def _get_target(self, index):
         if self.mode == "train":
