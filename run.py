@@ -6,10 +6,10 @@ import torch.optim
 import torch.utils.data
 # import soundfile as sf
 from tqdm import tqdm
-from preprocess.dataset.data_loader import ImagerLoader
+from dataset.data_loader import ImagerLoader
 # from preprocess.dataset.test_loader import test_ImagerLoader
-from preprocess.dataset.sampler import SequenceBatchSampler
-from model.model import BaselineLSTM
+from dataset.sampler import SequenceBatchSampler
+from model.model import BaselineLSTM, ViViT
 from config import argparser
 from common.logger import create_logger
 from common.engine import train, validate, evaluate
@@ -28,7 +28,10 @@ def main(args):
     logger.info(pprint.pformat(args))
 
     logger.info(f'Model: {args.model}')
-    model = BaselineLSTM(args)
+    if args.model == "BaselineLSTM":
+        model = BaselineLSTM(args)
+    elif args.model == "ViViT":
+        model = ViViT()
     
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,7 +45,7 @@ def main(args):
         datapath = os.path.join(ROOT_DIR, "data", "student_data", "train")
         videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
         audiopath = "./extracted_audio"
-        train_dataset = ImagerLoader(datapath, audiopath, videopath, args.train_file, mode="train", transform=get_transform(True))
+        train_dataset = ImagerLoader(datapath, audiopath, videopath, args.train_file, args.maxframe, args.minframe , mode="train", transform=get_transform(True), img_size = args.img_size)
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -56,7 +59,7 @@ def main(args):
 
         optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
-        val_dataset = ImagerLoader(datapath, audiopath, videopath, args.val_file,mode="val", transform=get_transform(False))
+        val_dataset = ImagerLoader(datapath, audiopath, videopath, args.val_file, args.maxframe, args.minframe,mode="val", transform=get_transform(False), img_size = args.img_size)
 
         val_loader = torch.utils.data.DataLoader(
             val_dataset,

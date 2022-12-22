@@ -5,9 +5,124 @@ import torch.utils.data
 from torch.nn.init import normal, constant
 from model.resnet import resnet18
 from model.resse import ResNetSE
-
+import timm
+from torch import einsum
+import torch.nn.functional as F
+from einops import rearrange, repeat
+from einops.layers.torch import Rearrange
+from model.module import Attention, PreNorm, FeedForward
 
 logger = logging.getLogger(__name__)
+
+
+class Transformer(nn.Module):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+        super().__init__()
+        self.layers = nn.ModuleList([])
+        self.norm = nn.LayerNorm(dim)
+        for _ in range(depth):
+            self.layers.append(nn.ModuleList([
+                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
+                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
+            ]))
+
+    def forward(self, x):
+        for attn, ff in self.layers:
+            x = attn(x) + x
+            x = ff(x) + x
+        return self.norm(x)
+
+class VisionEncoder(nn.Module):
+
+    def __init__(self, pretrained_model='vit_tiny_r_s16_p8_224.augreg_in21k', feature_dim=256):
+        super(VisionEncoder, self).__init__()
+        self.vit = timm.create_model(pretrained_model, pretrained=True)
+        self.match_size = nn.Linear(1024, feature_dim)
+
+    
+    def forward(self, x):
+        x = self.vit.forward_features(x)
+        x = self.match_size(x)
+        return x
+
+
+  
+class ViViT(nn.Module):
+    def __init__(self, image_size=224, patch_size=16, num_classes=2, num_frames=400, dim = 512, depth = 4, heads = 3, pool = 'cls', in_channels = 3, dim_head = 64, dropout = 0.,
+                 emb_dropout = 0., scale_dim = 4, ):
+        super().__init__()
+        
+        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+
+
+        assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
+        num_patches = (image_size // patch_size) ** 2
+        patch_dim = in_channels * patch_size ** 2
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b t c (h p1) (w p2) -> b t (h w) (p1 p2 c)', p1 = patch_size, p2 = patch_size),
+            nn.Linear(patch_dim, dim),
+        )
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_frames, num_patches + 1, dim))
+        self.space_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.space_transformer = Transformer(dim, depth, heads, dim_head, dim*scale_dim, dropout)
+        # self.space_transformer = VisionEncoder(feature_dim=dim*scale_dim)
+
+        self.temporal_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.temporal_transformer = Transformer(dim, depth, heads, dim_head, dim*scale_dim, dropout)
+        # self.temporal_transformer = VisionEncoder(feature_dim=dim*scale_dim)
+
+        self.audio_encoder = ResNetSE()
+
+        self.dropout = nn.Dropout(emb_dropout)
+        self.pool = pool
+
+        self.mlp_head = nn.Sequential(
+            nn.LayerNorm(dim*2),
+            nn.Linear(dim*2, dim // 2),
+            nn.ReLU(),
+            nn.Linear(dim // 2, num_classes),
+        )
+
+    def forward(self, x, audio):
+        # [b, t, c, h, w]
+        x = self.to_patch_embedding(x)
+        # [b, t, (h/patch_size)*(w/patch_size), dim]
+        b, t, n, _ = x.shape
+
+        cls_space_tokens = repeat(self.space_token, '() n d -> b t n d', b = b, t=t)
+        x = torch.cat((cls_space_tokens, x), dim=2)
+
+        x += self.pos_embedding[:, t, :(n + 1)]
+        x = self.dropout(x)
+        # [b, t, (h/patch_size)*(w/patch_size) + 1, dim]
+
+        x = rearrange(x, 'b t n d -> (b t) n d') 
+        # [b*t, n, d]
+        x = self.space_transformer(x)
+        # [b*t, n, d]
+        x = rearrange(x[:, 0], '(b t) ... -> b t ...', b=b)
+        # [b, t, d]
+
+        cls_temporal_tokens = repeat(self.temporal_token, '() n d -> b n d', b=b)
+        x = torch.cat((cls_temporal_tokens, x), dim=1)
+        # [b, t+1, d]
+
+        x = self.temporal_transformer(x)
+        # [b, t+1, d]
+        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        # [b, d]
+        print(x.size())
+
+        audio_out = self.audio_encoder(audio)
+        print("audio feature:", audio_out.size())
+
+        whole_feature = torch.cat((x, audio_out), dim=1)
+        print(whole_feature.size())
+
+
+        return self.mlp_head(whole_feature)
+    
 
 
 class BaselineLSTM(nn.Module):

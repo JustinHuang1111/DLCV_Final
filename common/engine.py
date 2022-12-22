@@ -33,10 +33,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
         # from common.render import visualize_gaze
         # for i in range(32):
         #     visualize_gaze(video, output[0], index=i, title=str(i))
-        print(video.device)
-        print(audio.device)
-        print(target.device)
-        print(output.device)
+
         loss = criterion(output, target.to(device))
 
         optimizer.zero_grad()
