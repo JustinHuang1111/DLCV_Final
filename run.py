@@ -1,7 +1,9 @@
 import os, sys, random, pprint
 
 sys.path.append(".")
+import json
 import torch
+import soundfile as sf
 import torch.optim
 import torch.utils.data
 
@@ -152,34 +154,35 @@ def main(args):
             model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
         logger.info("start evaluating")
         postprocess = test_PostProcessor(args)
-        evaluate(test_loader, model, postprocess)
+        evaluate(test_loader, model, postprocess, device)
         postprocess.mkfile()
 
 
-# def run():
+def get_segInfo():
+    args = argparser.parse_args()
+    frames_dir = args.extr_frames_path
+    aud_dir = args.extr_aud_path
+    seginfo = {}
 
-#     args = argparser.parse_args()
-#     if args.eval and not os.path.exists('./seg_info.json'):
-#         data_dir = args.test_data_path
-#         seginfo = {}
+    for seg_id in tqdm(os.listdir(frames_dir)):
+        frame_dir = os.path.join(frames_dir, seg_id)
+        seginfo[seg_id] = {}
+        frame_list = []
+        for f in os.listdir(os.path.join(frame_dir)):
+            # fid = int(f.split(".")[0])
+            fid = f.split(".")[0]
+            frame_list.append(fid)
+        frame_list.sort()
 
-#         for seg_id in tqdm(os.listdir(data_dir)):
-#             seg_path = os.path.join(data_dir, seg_id)
-#             seginfo[seg_id] = {}
-#             frame_list = []
-#             for f in os.listdir(os.path.join(seg_path, 'face')):
-#                 fid = int(f.split('.')[0])
-#                 frame_list.append(fid)
-#             frame_list.sort()
-#             seginfo[seg_id]['frame_list'] = frame_list
+        seginfo[seg_id]["frame_list"] = frame_list
+        aud, sr = sf.read(os.path.join(aud_dir, f"{seg_id}.wav"))
+        frame_num = int(aud.shape[0] / sr * 30 + 1)
+        # seginfo[seg_id]["frame_num"] = max(frame_num, max(frame_list) + 1)
+        seginfo[seg_id]["frame_num"] = max(frame_num, len(frame_list) + 1)
 
-#             aud, sr = sf.read(os.path.join(seg_path, 'audio', 'aud.wav'))
-#             frame_num = int(aud.shape[0]/sr*30+1)
-#             seginfo[seg_id]['frame_num'] = max(frame_num, max(frame_list)+1)
-
-#         with open('./seg_info.json','w') as f:
-#             json.dump(seginfo, f, indent=4)
-#     main(args)
+    with open("./seg_info.json", "w") as f:
+        json.dump(seginfo, f, indent=4)
+    # main(args)
 
 
 if __name__ == "__main__":

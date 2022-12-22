@@ -13,6 +13,7 @@ import torch
 from scipy.interpolate import interp1d
 from moviepy.editor import VideoFileClip
 import torchaudio
+
 logger = logging.getLogger(__name__)
 
 
@@ -140,10 +141,7 @@ def make_dataset(file_list, data_path):
             seg_length = end_frame - start_frame + 1
 
             ##### for setting maximum frame size and minimum frame size
-            if (
-            (seg_length <= 1)
-                or (personid == 0)
-            ):
+            if (seg_length <= 1) or (personid == 0):
                 continue
             # elif seg_length > max_frames:
             #     it = int(seg_length / max_frames)
@@ -163,7 +161,6 @@ def makeFileList(filepath):
     with open(filepath, "r") as f:
         videos = f.readlines()
     return [uid.strip() for uid in videos]
-        
 
 
 class ImagerLoader(torch.utils.data.Dataset):
@@ -212,25 +209,38 @@ class ImagerLoader(torch.utils.data.Dataset):
             # print("face: ", dict(list(self.face_crop[uid].items())[:3]))
             if key in self.face_crop[uid].keys():
                 bbox = self.face_crop[uid][key]
-                if os.path.isfile(f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png"):
-                    img = cv2.imread(f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png")
+                if os.path.isfile(
+                    f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png"
+                ):
+                    img = cv2.imread(
+                        f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png"
+                    )
                     face = cv2.resize(img, (video_size, video_size))
                 else:
                     ret, img = cap.read()
 
                     if not ret:
                         print("not ret")
-                        video.append(np.zeros((1,video_size, video_size, 3), dtype=np.uint8))
+                        video.append(
+                            np.zeros((1, video_size, video_size, 3), dtype=np.uint8)
+                        )
                         continue
 
                     if not os.path.isdir(f"./extracted_frames/{uid}"):
                         os.mkdir(f"./extracted_frames/{uid}")
-                    x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
-                        
+                    x1, y1, x2, y2 = (
+                        int(bbox[0]),
+                        int(bbox[1]),
+                        int(bbox[2]),
+                        int(bbox[3]),
+                    )
+
                     face = img[y1:y2, x1:x2, :]
                     if face.size != 0:
                         print(f"{uid}/write: {i:05d}_{personid}")
-                        cv2.imwrite(f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png", face)
+                        cv2.imwrite(
+                            f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png", face
+                        )
                 try:
                     face = cv2.resize(face, (video_size, video_size))
                 except:
@@ -262,18 +272,20 @@ class ImagerLoader(torch.utils.data.Dataset):
             audio = video.audio
             audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
 
-        audio, sample_rate = torchaudio.load(f"{self.audio_path}/{uid}.wav", normalize=True)
+        audio, sample_rate = torchaudio.load(
+            f"{self.audio_path}/{uid}.wav", normalize=True
+        )
 
         transform = torchaudio.transforms.Resample(sample_rate, 16000)
         audio = transform(audio)
         # transform = torchaudio.transforms.DownmixMono(channels_first=True)
         # audio = transform(audio)
         audio = torch.mean(audio, dim=0)
-        
+
         onset = int(start_frame / 30 * 16000)
         offset = int(end_frame / 30 * 16000)
         crop_audio = audio[onset:offset]
-        
+
         print("[get audio] crop audio shape", crop_audio.shape)
         # if self.mode == 'eval':
         # l = offset - onset

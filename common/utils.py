@@ -96,9 +96,7 @@ class test_PostProcessor:
         self.save_path = f"{self.exp_path}/tmp"
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
-        #         self.groundtruth = []
         self.prediction = []
-        #         self.groundtruthfile = f'{self.save_path}/gt.csv.rank.{args.rank}'
         self.predctionfile = f"{self.save_path}/pred.csv.rank.{args.rank}"
         self.current_seg = None
         self.current_fid_list = []

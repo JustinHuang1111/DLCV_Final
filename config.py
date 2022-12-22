@@ -4,7 +4,11 @@ argparser = argparse.ArgumentParser(description="Evalai challenge: Talking to me
 
 
 argparser.add_argument("--test_data_path", type=str, default="./final_test_data")
-# argparser.add_argument('--seg_info', type=str, default='./seg_info.json')
+# argparser.add_argument(
+#     "--frames_dir", type=str, default="./preprocess/extracted_frames"
+# )
+# argparser.add_argument("--audio_dir", type=str, default="./preprocess/extracted_audio")
+argparser.add_argument("--seg_info", type=str, default="./seg_info.json")
 # argparser.add_argument('--img_path', type=str, default='../../social-interactions/data/video_imgs', help='Video image directory')
 # argparser.add_argument('--wave_path', type=str, default='../../social-interactions/data/wave', help='Audio wave directory')
 # argparser.add_argument('--gt_path', type=str, default='../../social-interactions/data/result_TTM', help='Groundtruth directory')

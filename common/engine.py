@@ -4,6 +4,7 @@ import torch
 import torch.optim
 import torch.utils.data
 import torch.nn.functional as F
+import tqdm
 from common.utils import AverageMeter
 
 
@@ -105,8 +106,8 @@ def evaluate(val_loader, model, postprocess):
 
     for i, (video, audio, sid) in enumerate(val_loader):
 
-        video = video.cuda()
-        audio = audio.cuda()
+        video = video.to(device)
+        audio = audio.to(device)
 
         with torch.no_grad():
             print(audio.shape)
