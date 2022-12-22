@@ -82,6 +82,13 @@ def main(args):
             # train for one epoch
             train(train_loader, model, criterion, optimizer, epoch, device)
 
+            save_checkpoint({
+                'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'mAP': 0},
+                save_path=args.exp_path,
+                is_best=False,
+                timestamp = timestamp)
             # TODO: implement distributed evaluation
             # evaluate on validation set
             postprocess = PostProcessor(args)

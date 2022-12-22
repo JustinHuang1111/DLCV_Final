@@ -80,7 +80,7 @@ def load_csv(file, column_names):
         df = pd.DataFrame(file, columns=column_names)
     # Creates a unique id from frame timestamp and entity id.
     print(df["frame_id"])
-    df["uid"] = (df["segment_id"] + ":" + df["frame_id"].apply(str))
+    df["uid"] = (df["segment_id"].apply(str) + ":" + df["frame_id"].apply(str))
     return df.drop_duplicates("uid")
 
 
@@ -246,5 +246,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    # run_evaluation('output/result/gt.csv', 'output/result/pred.csv')
+    # main()
+    run_evaluation('./evalai_test/output/result/gt.csv', './evalai_test/output/result/pred.csv')
