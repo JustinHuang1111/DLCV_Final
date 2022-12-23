@@ -18,7 +18,9 @@ def get_transform(is_train):
 class PostProcessor():
     def __init__(self, args):
         self.exp_path = args.exp_path
-        self.save_path = f'{self.exp_path}/tmp'
+        self.model = args.model
+        os.makedirs(f'{self.exp_path}/{self.model}', exist_ok=True)
+        self.save_path = f'{self.exp_path}/{self.model}/tmp'
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
         self.groundtruth = []
@@ -67,7 +69,7 @@ class PostProcessor():
     
     def get_mAP(self):
         #merge csv
-        merge_path = f'{self.exp_path}/result'
+        merge_path = f'{self.exp_path}/{self.model}/result'
         if not os.path.exists(merge_path):
             os.mkdir(merge_path)
 

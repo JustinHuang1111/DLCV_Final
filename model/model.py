@@ -34,7 +34,7 @@ class Transformer(nn.Module):
 
 class VisionEncoder(nn.Module):
 
-    def __init__(self, pretrained_model='vit_tiny_r_s16_p8_224.augreg_in21k', feature_dim=256):
+    def __init__(self, pretrained_model='vit_base_resnet26d_224', feature_dim=256):
         super(VisionEncoder, self).__init__()
         self.vit = timm.create_model(pretrained_model, pretrained=True)
         self.match_size = nn.Linear(1024, feature_dim)

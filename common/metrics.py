@@ -79,8 +79,7 @@ def load_csv(file, column_names):
     else:
         df = pd.DataFrame(file, columns=column_names)
     # Creates a unique id from frame timestamp and entity id.
-    print(df["frame_id"])
-    df["uid"] = (df["segment_id"] + ":" + df["frame_id"].apply(str))
+    df["uid"] = (df["segment_id"].apply(str) + ":" + df["frame_id"].apply(str))
     return df.drop_duplicates("uid")
 
 
