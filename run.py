@@ -80,8 +80,11 @@ def main(args):
 
     if not args.eval:
         logger.info('start training')
+        if args.model == "ViViT":
+            logger.info(f"loading model {args.checkpoint}")
+            model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
         for epoch in range(args.epochs):
-
+            
             train_loader.batch_sampler.set_epoch(epoch)
             # train for one epoch
             train(train_loader, model, criterion, optimizer, epoch, device)
