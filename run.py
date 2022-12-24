@@ -115,6 +115,7 @@ def main(args):
 
     else:
         if args.model == "ViViT":
+            print(f"loading model {args.checkpoint}")
             model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
         logger.info('start evaluating')
         postprocess = test_PostProcessor(args)

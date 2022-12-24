@@ -269,15 +269,16 @@ class ImagerLoader(torch.utils.data.Dataset):
             audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
 
 
-        transform = torchaudio.transforms.Resample(sample_rate, 16000)
         audio, sample_rate = torchaudio.load(f"{self.audio_path}/{uid}.wav", normalize=True)
+        transform = torchaudio.transforms.Resample(sample_rate, 16000)
         audio = transform(audio)
         # transform = torchaudio.transforms.DownmixMono(channels_first=True)
         # audio = transform(audio)
         audio = torch.mean(audio, dim=0)
         
-        onset = int(start_frame / 30 * 16000)
-        offset = int(end_frame / 30 * 16000)
+        onset = int(min((start_frame+30) / 30 * 16000, audio.size()[0]-1))
+        print(audio.size()[0]-1)
+        offset = int(max((end_frame-30) / 30 * 16000, 0))
         crop_audio = audio[onset:offset]
         
         # print("[get audio] crop audio shape", crop_audio.shape)
@@ -301,6 +302,9 @@ class ImagerLoader(torch.utils.data.Dataset):
 
 
 
+def testmakeFileList(datapath):
+    segids = os.listdir(os.path.join(datapath, "seg"))
+    return [x.split("_")[0] for x in segids]
 
 
 def test_make_dataset(file_list, data_path, maxframe, minframe, mode):
@@ -361,7 +365,7 @@ class test_ImagerLoader(torch.utils.data.Dataset):
     ):
         self.audio_path = "./extracted_audio"
         self.video_path = video_path
-        self.file_list = makeFileList(data_path)
+        self.file_list = testmakeFileList(data_path)
         print(f"{mode} file with length: {str(len(self.file_list))}")
 
         self.mode = mode
