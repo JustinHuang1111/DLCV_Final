@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import soundfile
 import torch
+from tqdm import tqdm
 from scipy.interpolate import interp1d
 from moviepy.editor import VideoFileClip
 import torchaudio
@@ -122,9 +123,6 @@ def make_dataset(file_list, data_path, maxframe, minframe, mode):
 
     face_crop = {}
     segments = []
-    # with open(file_list, "r") as f:
-    #     videos = f.readlines()
-
     for uid in file_list:
         seg_path = os.path.join(data_path, "seg", uid + "_seg.csv")
         bbox_path = os.path.join(data_path, "bbox", uid + "_bbox.csv")
@@ -293,9 +291,7 @@ class ImagerLoader(torch.utils.data.Dataset):
         # onset = int(start_frame / 30 * 16000)
         # offset = int(end_frame/ 30 * 16000)
         onset = int(min((start_frame - 30) / 30 * 16000, 0))
-        # print(audio.size()[0]-1)
         offset = int(max((end_frame + 30) / 30 * 16000, audio.size()[0] - 1))
-        # print(onset, offset)
         crop_audio = audio[onset:offset]
 
         # print("[get audio] crop audio shape", crop_audio.shape)
@@ -308,7 +304,7 @@ class ImagerLoader(torch.utils.data.Dataset):
         #     crop_audio = normalize(audio[onset: offset])
         # else:
         #     crop_audio = normalize(audio[onset: offset])
-        return torch.tensor(crop_audio, dtype=torch.float32)
+        return crop_audio.to(torch.float32)
 
     def _get_target(self, index):
         if self.mode == "train":
@@ -322,15 +318,13 @@ def testmakeFileList(datapath):
     return [x.split("_")[0] for x in segids]
 
 
-def test_make_dataset(file_list, data_path, maxframe, minframe, mode):
+def test_make_dataset(file_list, data_path, maxframe=None, minframe=10, mode="eval"):
     # file list is a list of training or validation file names
 
     face_crop = {}
     segments = []
-    # with open(file_list, "r") as f:
-    #     videos = f.readlines()
 
-    for uid in file_list:
+    for uid in tqdm(file_list):
         seg_path = os.path.join(data_path, "seg", uid + "_seg.csv")
         bbox_path = os.path.join(data_path, "bbox", uid + "_bbox.csv")
         uid = uid.strip()
@@ -343,6 +337,7 @@ def test_make_dataset(file_list, data_path, maxframe, minframe, mode):
             end_frame = int(gt["end_frame"])
             seg_length = end_frame - start_frame + 1
             save_id = f"{uid}_{personid}_{start_frame}_{end_frame}"
+
             ##### for setting maximum frame size and minimum frame size
             if (
                 (mode == "train" and minframe != None and seg_length < minframe)
@@ -395,8 +390,6 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         source_video = self._get_video(indices)
         source_audio = self._get_audio(indices)
         sid = self.segments[indices][4]
-        start_frames = self.segments[indices][2]
-        end_frames = self.segments[indices][3]
         return source_video, source_audio, sid
 
     def __len__(self):
@@ -493,18 +486,7 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         if onset == offset:
             onset, offset = onset - 16000, offset + 16000
         crop_audio = audio[onset:offset]
-
-        print(f"[get audio] {uid}", crop_audio.shape)
-        # if self.mode == 'eval':
-        # l = offset - onset
-        # crop_audio = np.zeros(l)
-        #     index = random.randint(0, len(self.segments)-1)
-        #     uid, _, _, _, _, _ = self.segments[index]
-        #     audio, sample_rate = soundfile.read(f'{self.audio_path}/{uid}.wav')
-        #     crop_audio = normalize(audio[onset: offset])
-        # else:
-        #     crop_audio = normalize(audio[onset: offset])
-        return torch.tensor(crop_audio, dtype=torch.float32)
+        return crop_audio.to(torch.float32)
 
     def _get_target(self, index):
         if self.mode == "train":

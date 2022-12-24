@@ -29,23 +29,21 @@ from setup import ROOT_DIR
 
 def main(args):
     if torch.cuda.is_available():
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         torch.cuda.set_device(args.device_id)
         torch.cuda.init()
-
     if not os.path.exists(args.exp_path):
         os.mkdir(args.exp_path)
 
     logger, timestamp = create_logger(args)
-    logger.info(pprint.pformat(args))
-
+    pp = pprint.PrettyPrinter(indent=2)
+    logger.info(pprint.pformat(vars(args)))
     logger.info(f"Model: {args.model}")
+    logger.info(f"Using device: {device}")
     if args.model == "BaselineLSTM":
-        model = BaselineLSTM(args)
+        model = BaselineLSTM(args).to(device)
     elif args.model == "ViViT":
         model = ViViT()
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
     model.to(device)
 
     torch.backends.cudnn.deterministic = True

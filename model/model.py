@@ -168,7 +168,7 @@ class BaselineLSTM(nn.Module):
 
         self.video_encoder = resnet18(pretrained=False)
 
-        self.video_encodxeer.fc2 = nn.Linear(1000, self.img_feature_dim)
+        self.video_encoder.fc2 = nn.Linear(1000, self.img_feature_dim)
 
         self.lstm = nn.LSTM(
             self.img_feature_dim,
@@ -214,7 +214,7 @@ class BaselineLSTM(nn.Module):
             if os.path.exists(self.args.checkpoint):
                 logger.info(f"loading checkpoint {self.args.checkpoint}")
                 state = torch.load(
-                    self.args.checkpoint, map_location=f"cuda:{self.args.rank}"
+                    self.args.checkpoint, map_location=f"cuda:{self.args.device_id}"
                 )
                 if "module" in list(state["state_dict"].keys())[0]:
                     state_dict = {k[7:]: v for k, v in state["state_dict"].items()}
@@ -287,7 +287,7 @@ class GazeLSTM(nn.Module):
             if os.path.exists(self.args.checkpoint):
                 logger.info(f"loading checkpoint {self.args.checkpoint}")
                 map_loc = (
-                    f"cuda:{self.args.rank}" if torch.cuda.is_available() else "cpu"
+                    f"cuda:{self.args.device_id}" if torch.cuda.is_available() else "cpu"
                 )
                 state = torch.load(self.args.checkpoint, map_location=map_loc)
                 if "module" in list(state["state_dict"].keys())[0]:

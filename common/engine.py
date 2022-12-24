@@ -104,13 +104,12 @@ def evaluate(val_loader, model, postprocess, device):
     model.eval()
     end = time.time()
 
-    for i, (video, audio, sid) in enumerate(val_loader):
+    for i, (video, audio, sid) in enumerate(tqdm(val_loader)):
 
         video = video.to(device)
         audio = audio.to(device)
 
         with torch.no_grad():
-            print(audio.shape)
             if audio.size(dim=1) == 0:
                 print(sid)
             output = model(video, audio)

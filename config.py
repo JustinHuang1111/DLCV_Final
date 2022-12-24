@@ -23,7 +23,7 @@ argparser.add_argument(
     "--test_file",
     type=str,
     default="./preprocess/dataset/split/test.list",
-    help="Validation list",
+    help="test list",
 )
 # argparser.add_argument('--test_file', type=str, default='./test.list', help='Test list')
 argparser.add_argument(
