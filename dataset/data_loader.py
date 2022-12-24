@@ -276,9 +276,12 @@ class ImagerLoader(torch.utils.data.Dataset):
         # audio = transform(audio)
         audio = torch.mean(audio, dim=0)
         
-        onset = int(min((start_frame+30) / 30 * 16000, audio.size()[0]-1))
-        print(audio.size()[0]-1)
-        offset = int(max((end_frame-30) / 30 * 16000, 0))
+        
+        onset = int(start_frame / 30 * 16000)
+        offset = int(end_frame/ 30 * 16000)
+        # onset = int(min((start_frame+30) / 30 * 16000, audio.size()[0]-1))
+        # print(audio.size()[0]-1)
+        # offset = int(max((end_frame-30) / 30 * 16000, 0))
         crop_audio = audio[onset:offset]
         
         # print("[get audio] crop audio shape", crop_audio.shape)
