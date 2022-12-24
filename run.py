@@ -153,38 +153,41 @@ def main(args):
             print(f"loading model {args.checkpoint}")
             model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
         logger.info("start evaluating")
-        # postprocess = test_PostProcessor(args)
-        postprocess = PostProcessor(args)
-        mAP = validate(test_loader, model, postprocess, device)
+        postprocess = test_PostProcessor(args)
+        mAP = evaluate(test_loader, model, postprocess, device)
         print("Score mAP:", mAP)
         postprocess.mkfile()
 
 
-def get_segInfo():
-    args = argparser.parse_args()
-    frames_dir = args.extr_frames_path
-    aud_dir = args.extr_aud_path
-    seginfo = {}
+# def get_segInfo():
+#     args = argparser.parse_args()
+#     frames_dir = "./extracted_frames"
+#     aud_dir = "./extracted_audio"
+#     seginfo = {}
 
-    for seg_id in tqdm(os.listdir(frames_dir)):
-        frame_dir = os.path.join(frames_dir, seg_id)
-        seginfo[seg_id] = {}
-        frame_list = []
-        for f in os.listdir(os.path.join(frame_dir)):
-            # fid = int(f.split(".")[0])
-            fid = f.split(".")[0]
-            frame_list.append(fid)
-        frame_list.sort()
+#     for seg_id in tqdm(os.listdir(frames_dir)):
+#         frame_dir = os.path.join(frames_dir, seg_id)
+#         seginfo[seg_id] = {}
+#         frame_list = []
+#         for f in os.listdir(os.path.join(frame_dir)):
+#             fid = int(f.split("_")[1])
+#             # fid = f.split(".")[0]
+#             frame_list.append(fid)
+#         frame_list.sort()
+#         seginfo[seg_id]["frame_list"] = frame_list
+#         aud, sr = sf.read(os.path.join(aud_dir, f"{seg_id}.wav"))
+#         frame_num = int(aud.shape[0] / sr * 30 + 1)
+#         frame_list_len = 0
+#         try:
+#             frame_list_len = max(frame_list)
+#         except:
+#             pass
+#         seginfo[seg_id]["frame_num"] = max(frame_num, frame_list_len + 1)
+#         # seginfo[seg_id]["frame_num"] = max(frame_num, len(frame_list) + 1)
 
-        seginfo[seg_id]["frame_list"] = frame_list
-        aud, sr = sf.read(os.path.join(aud_dir, f"{seg_id}.wav"))
-        frame_num = int(aud.shape[0] / sr * 30 + 1)
-        # seginfo[seg_id]["frame_num"] = max(frame_num, max(frame_list) + 1)
-        seginfo[seg_id]["frame_num"] = max(frame_num, len(frame_list) + 1)
-
-    with open("./seg_info.json", "w") as f:
-        json.dump(seginfo, f, indent=4)
-    # main(args)
+#     with open("./seg_info.json", "w") as f:
+#         json.dump(seginfo, f, indent=4)
+# main(args)
 
 
 if __name__ == "__main__":

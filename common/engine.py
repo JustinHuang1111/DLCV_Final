@@ -25,9 +25,9 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
 
         # measure data loading time
         data_time.update(time.time() - end)
-        video = video.cuda()
-        audio = audio.cuda()
-        target = target.cuda()
+        video = video.to(device)
+        audio = audio.to(device)
+        target = target.to(device)
         # compute output
         output = model(video, audio)
 
@@ -79,8 +79,6 @@ def validate(val_loader, model, postprocess, device):
 
         with torch.no_grad():
             output = model(video, audio)
-            # output = model(video)
-
             postprocess.update(output.detach().cpu(), target)
 
             batch_time.update(time.time() - end)
@@ -99,9 +97,10 @@ def validate(val_loader, model, postprocess, device):
     return mAP
 
 
-def evaluate(val_loader, model, postprocess):
+def evaluate(val_loader, model, postprocess, device):
     logger.info("evaluating")
     batch_time = AverageMeter()
+    model.to(device)
     model.eval()
     end = time.time()
 
@@ -115,8 +114,6 @@ def evaluate(val_loader, model, postprocess):
             if audio.size(dim=1) == 0:
                 print(sid)
             output = model(video, audio)
-            # output = model(video)
-            # print(sid)
             postprocess.update(output.detach().cpu(), sid)
 
             batch_time.update(time.time() - end)

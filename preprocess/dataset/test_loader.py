@@ -52,38 +52,10 @@ def normalize(samples, desired_rms=0.1, eps=1e-4):
     return samples
 
 
-# def make_dataset(data_path):
-
-#     logger.info('load: ' + data_path)
-#     vid_path_list = []
-#     aud_path_list = []
-#     sid_list = []
-#     sid2fid_list = {}
-
-#     for vid_id in tqdm(os.listdir(data_path)):
-#         for seg_id in os.listdir(os.path.join(data_path, vid_id)):
-#             sid = vid_id + ':' + seg_id
-#             sid_list.append(sid)
-#             sid2fid_list[sid] = []
-#             aud_path_list.append(os.path.join(data_path, vid_id, seg_id, 'audio', 'aud.wav'))
-#             if os.path.exists(os.path.join(data_path, vid_id, seg_id, 'face')):
-#                 vid_path_list.append(os.path.join(data_path, vid_id, seg_id, 'face'))
-#                 for img_path in os.listdir(os.path.join(data_path, vid_id, seg_id, 'face')):
-#                     fid = img_path.split('_')[1].split('.')[0]
-#                     sid2fid_list[sid].append(fid)
-#             else:
-#                 vid_path_list.append('None')
-#     return vid_path_list, aud_path_list, sid_list, sid2fid_list
-
-
 def get_bbox(bbox_path):
     bboxes = {}
     bbox_csv = pd.read_csv(bbox_path)
     for idx, bbox in bbox_csv.iterrows():
-
-        # check the bbox, interpolate when necessary
-        # frames = check(frames)
-
         # for frame in frames:
         frameid = int(bbox["frame_id"])
         personid = int(bbox["person_id"])
@@ -100,26 +72,46 @@ def makeFileList(filepath):
     return [uid.strip() for uid in videos]
 
 
-def make_dataset(file_list, aud_dir, vid_dir, seg_info, min_frames=15, max_frames=150):
+def make_dataset(file_list, data_path, maxframe=None, minframe=10, mode="eval"):
+    # file list is a list of training or validation file names
+
+    face_crop = {}
     segments = []
-    for sid in tqdm(file_list):
-        aud_path = os.path.join(aud_dir, f"{sid}.wav")
-        vid_path = os.path.join(vid_dir, f"{sid}")
-        seg_length = seg_info[sid]["frame_num"]
-        start_frame = 0
-        end_frame = seg_length - 1
-        if seg_length > max_frames:
-            it = int(seg_length / max_frames)
-            for i in range(it):
-                sub_start = start_frame + i * max_frames
-                sub_end = min(end_frame, sub_start + max_frames)
-                sub_length = sub_end - sub_start + 1
-                if sub_length < min_frames:
-                    continue
-                segments.append([sid, aud_path, vid_path, sub_start, sub_end])
-        else:
-            segments.append([sid, aud_path, vid_path, start_frame, end_frame])
-    return segments
+
+    for uid in tqdm(file_list):
+        seg_path = os.path.join(data_path, "seg", uid + "_seg.csv")
+        bbox_path = os.path.join(data_path, "bbox", uid + "_bbox.csv")
+        uid = uid.strip()
+        face_crop[uid] = get_bbox(bbox_path)
+        seg = pd.read_csv(seg_path)
+
+        for idx, gt in seg.iterrows():
+            personid = gt["person_id"]
+            start_frame = int(gt["start_frame"])
+            end_frame = int(gt["end_frame"])
+            seg_length = end_frame - start_frame + 1
+            save_id = f"{uid}_{personid}_{start_frame}_{end_frame}"
+
+            ##### for setting maximum frame size and minimum frame size
+            if (
+                (mode == "train" and minframe != None and seg_length < minframe)
+                or (seg_length <= 1)
+                or (personid == 0)
+            ):
+                continue
+            elif maxframe != None and seg_length > maxframe:
+                it = int(seg_length / maxframe)
+                for i in range(it):
+                    sub_start = start_frame + i * maxframe
+                    sub_end = min(end_frame, sub_start + maxframe)
+                    sub_length = sub_end - sub_start + 1
+                    if minframe != None and sub_length < minframe:
+                        continue
+                    segments.append([uid, personid, sub_start, sub_end, save_id])
+            else:
+                segments.append([uid, personid, start_frame, end_frame, save_id])
+
+    return segments, face_crop
 
 
 class test_ImagerLoader(torch.utils.data.Dataset):
@@ -144,9 +136,8 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         )
         print(f"{mode} file with length: {str(len(self.file_list))}")
 
-        self.segments = make_dataset(
-            self.file_list, self.audio_path, self.video_path, self.seg_info
-        )
+        print("start making dataset")
+        self.segments, self.face_crop = make_dataset(self.file_list, self.data_path)
         print("finish making dataset")
         self.transform = transform
         self.mode = mode
@@ -154,21 +145,21 @@ class test_ImagerLoader(torch.utils.data.Dataset):
     def __getitem__(self, indices):
         source_audio = self._get_audio(indices)
         source_video = self._get_video(indices)
-        sid = self.segments[indices][0]
-        return source_video, source_audio, sid, self.seg_info[sid]["frame_list"]
+        sid = self.segments[indices][4]
+        return source_video, source_audio, sid
 
     def __len__(self):
         return len(self.segments)
 
     def _get_video(self, index, debug=False):
         video_size = 128
-        uid, personid, _, start_frame, end_frame, _ = self.segments[index]
+        uid, personid, start_frame, end_frame, _ = self.segments[index]
         cap = cv2.VideoCapture(os.path.join(self.video_path, f"{uid}.mp4"))
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         video = []
-        for i in range(start_frame, end_frame + 1):
+        for i in tqdm(range(start_frame, end_frame + 1)):
             key = str(i) + ":" + str(personid)
             # print("key: ", key)
             # print("face: ", dict(list(self.face_crop[uid].items())[:3]))
@@ -231,9 +222,9 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         return video
 
     def _get_audio(self, index):
-        uid, _, _, start_frame, end_frame, _ = self.segments[index]
+        uid, _, start_frame, end_frame, _ = self.segments[index]
         if not os.path.isfile(os.path.join(self.audio_path, f"{uid}.wav")):
-            audiovideo = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
+            video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
             audio = video.audio
             audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
 
@@ -243,26 +234,11 @@ class test_ImagerLoader(torch.utils.data.Dataset):
 
         transform = torchaudio.transforms.Resample(sample_rate, 16000)
         audio = transform(audio)
-        # transform = torchaudio.transforms.DownmixMono(channels_first=True)
-        # audio = transform(audio)
         audio = torch.mean(audio, dim=0)
 
         onset = int(start_frame / 30 * 16000)
         offset = int(end_frame / 30 * 16000)
         crop_audio = audio[onset:offset]
-
-        # print("[get audio] crop audio shape", crop_audio.shape)
-        # if self.mode == 'eval':
-        # l = offset - onset
-        # crop_audio = np.zeros(l)
-        #     index = random.randint(0, len(self.segments)-1)
-        #     uid, _, _, _, _, _ = self.segments[index]
-        #     audio, sample_rate = soundfile.read(f'{self.audio_path}/{uid}.wav')
-        #     crop_audio = normalize(audio[onset: offset])
-        # else:
-        #     crop_audio = normalize(audio[onset: offset])
-        # return torch.tensor(crop_audio, dtype=torch.float32)
-        print("[get audio] audio shape: ", audio.shape)
         return crop_audio.to(torch.float32)
 
     def _get_target(self, index):

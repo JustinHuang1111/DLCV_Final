@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import soundfile
 import torch
+from tqdm import tqdm
 from scipy.interpolate import interp1d
 from moviepy.editor import VideoFileClip
 import torchaudio
@@ -126,7 +127,7 @@ def make_dataset(file_list, data_path):
     # with open(file_list, "r") as f:
     #     videos = f.readlines()
 
-    for uid in file_list:
+    for uid in tqdm(file_list):
         seg_path = os.path.join(data_path, "seg", uid + "_seg.csv")
         bbox_path = os.path.join(data_path, "bbox", uid + "_bbox.csv")
         uid = uid.strip()
@@ -179,6 +180,7 @@ class ImagerLoader(torch.utils.data.Dataset):
         self.file_list = makeFileList(self.file_path)
         print(f"{mode} file with length: {str(len(self.file_list))}")
 
+        print("start making dataset")
         segments, face_crop = make_dataset(self.file_list, data_path)
         print("finish making dataset")
         self.segments = segments

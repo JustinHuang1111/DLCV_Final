@@ -107,7 +107,7 @@ class test_PostProcessor:
         segid = sid[0]
         if self.current_seg is None:
             self.current_seg = segid
-            # self.current_fid_list = zip(start, end)
+            # self.current_fid_list = fid_list
             self.segoutput.append(outputs)
         elif segid == self.current_seg:
             self.segoutput.append(outputs)
@@ -115,43 +115,36 @@ class test_PostProcessor:
             self._merge_output()
             # update segments
             self.current_seg = segid
-            # self.current_fid_list = zip(start, end)
+            # self.current_fid_list = fid_list
             self.segoutput = [outputs]
 
     def _merge_output(self):
         # merge and save segments
         pred = torch.cat([p for p in self.segoutput], dim=0)
         pred = F.softmax(pred.mean(0), dim=-1)
-        print("merging")
-        print(self.current_seg, pred[1].item())
+        # print(self.current_seg, pred[1].item())
         # for fid in self.current_fid_list:
         self.prediction.append([self.current_seg, pred[1].item()])
+        # pred = torch.cat([p for p in self.segoutput], dim=0)
+        # pred = F.softmax(pred.mean(0), dim=-1)
+        # print(pred)
+        # for fid in self.current_fid_list:
+        # self.prediction.append([fid, pred[1].item()])
 
     def save(self):
         if len(self.segoutput) != 0:
             self._merge_output()
-        #         if os.path.exists(self.groundtruthfile):
-        #             os.remove(self.groundtruthfile)
         if os.path.exists(self.predctionfile):
             os.remove(self.predctionfile)
-        #         gt_df = pd.DataFrame(self.groundtruth)
-        #         gt_df.to_csv(self.groundtruthfile, index=False, header=None)
-        print("saving")
         pred_df = pd.DataFrame(self.prediction)
-        pred_df.to_csv(self.predctionfile, index=False, header=None)
+        pred_df.columns = ["Id", "Predicted"]
+        pred_df.to_csv(self.predctionfile, index=False)
 
     def mkfile(self):
         # merge csv
         merge_path = f"{self.exp_path}/result"
         if not os.path.exists(merge_path):
             os.mkdir(merge_path)
-
-        #         gt_file = f'{merge_path}/gt.csv'
-        #         if os.path.exists(gt_file):
-        #             os.remove(gt_file)
-        #         gts = glob.glob(f'{self.save_path}/gt.csv.rank.*')
-        #         cmd = 'cat {} > {}'.format(' '.join(gts), gt_file)
-        #         subprocess.call(cmd, shell=True)
         pred_file = f"{merge_path}/pred.csv"
         if os.path.exists(pred_file):
             os.remove(pred_file)
