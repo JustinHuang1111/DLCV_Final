@@ -103,12 +103,12 @@ class test_PostProcessor():
         self.current_fid_list = []
         self.segoutput = []
     
-    def update(self, outputs, sid, fid_list):
+    def update(self, outputs, sid):
         #postprocess outputs of one minibatch
         segid = sid[0]
         if self.current_seg is None:
             self.current_seg = segid
-            self.current_fid_list = fid_list
+            # self.current_fid_list = zip(start, end)
             self.segoutput.append(outputs)
         elif segid == self.current_seg:
             self.segoutput.append(outputs)
@@ -116,15 +116,17 @@ class test_PostProcessor():
             self._merge_output()
             # update segments
             self.current_seg = segid
-            self.current_fid_list = fid_list
+            # self.current_fid_list = zip(start, end)
             self.segoutput = [outputs]
     
     def _merge_output(self):
         # merge and save segments
         pred = torch.cat([p for p in self.segoutput], dim=0)
         pred = F.softmax(pred.mean(0), dim=-1)
-        for fid in self.current_fid_list:
-            self.prediction.append([self.current_seg, fid.item(), 1, pred[1].item()])
+        print("merging")
+        print(self.current_seg, pred[1].item())
+        # for fid in self.current_fid_list:
+        self.prediction.append([self.current_seg, pred[1].item()])
 
     def save(self):
         if len(self.segoutput) != 0:
@@ -135,6 +137,7 @@ class test_PostProcessor():
             os.remove(self.predctionfile)
 #         gt_df = pd.DataFrame(self.groundtruth)
 #         gt_df.to_csv(self.groundtruthfile, index=False, header=None)
+        print("saving")
         pred_df = pd.DataFrame(self.prediction)
         pred_df.to_csv(self.predctionfile, index=False, header=None)
     

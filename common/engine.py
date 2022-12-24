@@ -89,16 +89,19 @@ def evaluate(val_loader, model, postprocess):
     model.eval()
     end = time.time()
 
-    for i, (video, audio, sid, fid_list) in enumerate(val_loader):
+    for i, (video, audio, sid) in enumerate(val_loader):
 
         video = video.cuda()
         audio = audio.cuda()
 
         with torch.no_grad():
+            print(audio.shape)
+            if(audio.size(dim=1) == 0):
+                print(sid)
             output = model(video, audio)
             # output = model(video)
-
-            postprocess.update(output.detach().cpu(), sid, fid_list)
+            print(sid)
+            postprocess.update(output.detach().cpu(), sid)
 
             batch_time.update(time.time() - end)
             end = time.time()

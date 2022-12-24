@@ -6,7 +6,7 @@ import torch.optim
 import torch.utils.data
 # import soundfile as sf
 from tqdm import tqdm
-from dataset.data_loader import ImagerLoader
+from dataset.data_loader import ImagerLoader, test_ImagerLoader
 # from preprocess.dataset.test_loader import test_ImagerLoader
 from dataset.sampler import SequenceBatchSampler
 from model.model import BaselineLSTM, ViViT
@@ -41,11 +41,10 @@ def main(args):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+    videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
     if not args.eval:
         datapath = os.path.join(ROOT_DIR, "data", "student_data", "train")
-        videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
-        audiopath = "./extracted_audio"
-        train_dataset = ImagerLoader(datapath, audiopath, videopath, args.train_file, args.maxframe, args.minframe , mode="train", transform=get_transform(True), img_size = args.img_size)
+        train_dataset = ImagerLoader(datapath, videopath, args.train_file, args.maxframe, args.minframe , mode="train", transform=get_transform(True), img_size = args.img_size)
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -59,7 +58,7 @@ def main(args):
 
         optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
-        val_dataset = ImagerLoader(datapath, audiopath, videopath, args.val_file, args.maxframe, args.minframe,mode="val", transform=get_transform(False), img_size = args.img_size)
+        val_dataset = ImagerLoader(datapath, videopath, args.val_file, args.maxframe, args.minframe,mode="val", transform=get_transform(False), img_size = args.img_size)
 
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
@@ -67,10 +66,12 @@ def main(args):
             num_workers=args.num_workers,
             pin_memory=False)
     else:
-        test_dataset = test_ImagerLoader(args.test_data_path, args.seg_info, transform=get_transform(False))
+        datapath = os.path.join(ROOT_DIR, "data", "student_data", "test")
+        test_dataset = test_ImagerLoader(datapath, videopath, args.maxframe, args.minframe, mode="test", transform=get_transform(False), img_size = args.img_size)
 
         test_loader = torch.utils.data.DataLoader(
             test_dataset,
+            shuffle=False,
             batch_size=1,
             num_workers=args.num_workers,
             pin_memory=False)
@@ -113,6 +114,8 @@ def main(args):
 
 
     else:
+        if args.model == "ViViT":
+            model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
         logger.info('start evaluating')
         postprocess = test_PostProcessor(args)
         evaluate(test_loader, model, postprocess)
