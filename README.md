@@ -1,11 +1,8 @@
 # DLCV Final Project ( Talking to me )
+# Important note:
+I have softlinks to these directories: **extracted_frames, extracted_audio, data**
+Please pay attention to them when fetching this version
 
-# How to run your code?
-* TODO: Please provide the scripts for TAs to reproduce your results, including training and inference. For example, 
-```shell script=
-bash train.sh <Path to videos folder> <Path to seg folder> <Path to bbox folder>
-bash inference.sh <Path to videos folder> <Path to seg folder> <Path to bbox folder> <Path to output csv file>
-```
 # Installation
 ```bash script=
 $ pip install -r requirements.txt
@@ -114,4 +111,9 @@ If you have any problems related to Final Project, you may
 ├── setup.py
 └── test.py
 ```
-
+# How to run your code?
+* TODO: Please provide the scripts for TAs to reproduce your results, including training and inference. For example, 
+```shell script=
+bash train.sh <Path to videos folder> <Path to seg folder> <Path to bbox folder>
+bash inference.sh <Path to videos folder> <Path to seg folder> <Path to bbox folder> <Path to output csv file>
+```
