@@ -15,3 +15,6 @@ __pycache__
 ./extracted_frames/
 student_data/*
 sample_submission.csv
+extracted_frames
+extracted_audio
+*.zip

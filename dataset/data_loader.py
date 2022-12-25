@@ -13,7 +13,7 @@ from tqdm import tqdm
 from scipy.interpolate import interp1d
 from moviepy.editor import VideoFileClip
 import torchaudio
-
+import time
 logger = logging.getLogger(__name__)
 
 
@@ -135,6 +135,7 @@ def make_dataset(file_list, data_path, maxframe, minframe, mode):
             label = int(gt["ttm"])
             start_frame = int(gt["start_frame"])
             end_frame = int(gt["end_frame"])
+            # logger.info(f"{uid} -> {start_frame} and {end_frame}")
             seg_length = end_frame - start_frame + 1
 
             ##### for setting maximum frame size and minimum frame size
@@ -154,6 +155,7 @@ def make_dataset(file_list, data_path, maxframe, minframe, mode):
                         continue
                     segments.append([uid, personid, label, sub_start, sub_end, idx])
             else:
+                
                 segments.append([uid, personid, label, start_frame, end_frame, idx])
 
     return segments, face_crop
@@ -205,6 +207,8 @@ class ImagerLoader(torch.utils.data.Dataset):
     def _get_video(self, index, debug=False):
         video_size = self.img_size
         uid, personid, _, start_frame, end_frame, _ = self.segments[index]
+        # logger.info(f"[get audio] {start_frame} and {end_frame}")
+        
         cap = cv2.VideoCapture(os.path.join(self.video_path, f"{uid}.mp4"))
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -248,6 +252,7 @@ class ImagerLoader(torch.utils.data.Dataset):
                         cv2.imwrite(
                             f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png", face
                         )
+                        logger.info(f"writing {uid}/img_{i:05d}_{personid}.png")
                 try:
                     face = cv2.resize(face, (video_size, video_size))
                 except:
@@ -274,27 +279,39 @@ class ImagerLoader(torch.utils.data.Dataset):
 
     def _get_audio(self, index):
         uid, _, _, start_frame, end_frame, _ = self.segments[index]
+        logger.info(f"[get audio] {start_frame} and {end_frame}")
+        
         if not os.path.isfile(os.path.join(self.audio_path, f"{uid}.wav")):
             video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
             audio = video.audio
             audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
+            logger.info(f"writing {self.audio_path}/{uid}.wav")
+            
+        while not os.path.exists(os.path.join(self.audio_path, f"{uid}.wav")):
+            time.sleep(1)
 
-        audio, sample_rate = torchaudio.load(
-            f"{self.audio_path}/{uid}.wav", normalize=True
-        )
+        if os.path.isfile(os.path.join(self.audio_path, f"{uid}.wav")):
+            # read file
+            audio, sample_rate = torchaudio.load(
+                f"{self.audio_path}/{uid}.wav", normalize=True
+            )
+        else:
+            raise ValueError("%s isn't a file!" % os.path.join(self.audio_path, f"{uid}.wav"))
         transform = torchaudio.transforms.Resample(sample_rate, 16000)
         audio = transform(audio)
         # transform = torchaudio.transforms.DownmixMono(channels_first=True)
         # audio = transform(audio)
         audio = torch.mean(audio, dim=0)
+        # logger.info(f"[get audio] orig audio shape {audio.shape}")
 
         # onset = int(start_frame / 30 * 16000)
         # offset = int(end_frame/ 30 * 16000)
-        onset = int(min((start_frame - 30) / 30 * 16000, 0))
-        offset = int(max((end_frame + 30) / 30 * 16000, audio.size()[0] - 1))
+        onset = int(max((start_frame - 30) / 30 * 16000, 0))
+        offset = int(min((end_frame + 30) / 30 * 16000, audio.size()[0] - 1))
         crop_audio = audio[onset:offset]
-
-        # print("[get audio] crop audio shape", crop_audio.shape)
+        
+        # logger.info(f"{onset} and {offset}")
+        # logger.info(f"[get audio] crop audio shape {crop_audio.shape}")
         # if self.mode == 'eval':
         # l = offset - onset
         # crop_audio = np.zeros(l)

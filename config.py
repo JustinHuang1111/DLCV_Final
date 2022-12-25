@@ -40,7 +40,7 @@ argparser.add_argument(
 )
 argparser.add_argument("--epochs", type=int, default=40, help="Maximum epoch")
 argparser.add_argument("--batch_size", type=int, default=64, help="Batch size")
-argparser.add_argument("--num_workers", type=int, default=4, help="Num workers")
+argparser.add_argument("--num_workers", type=int, default=2, help="Num workers")
 argparser.add_argument("--lr", type=float, default=5e-4, help="Learning rate")
 argparser.add_argument(
     "--weights", type=list, default=[0.266, 0.734], help="Class weight"

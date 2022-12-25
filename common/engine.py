@@ -21,7 +21,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
 
     end = time.time()
 
-    for i, (video, audio, target) in tqdm(train_loader):
+    for i, (video, audio, target) in enumerate(tqdm(train_loader)):
 
         # measure data loading time
         data_time.update(time.time() - end)
