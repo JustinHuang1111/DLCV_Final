@@ -279,7 +279,7 @@ class ImagerLoader(torch.utils.data.Dataset):
 
     def _get_audio(self, index):
         uid, _, _, start_frame, end_frame, _ = self.segments[index]
-        logger.info(f"[get audio] {start_frame} and {end_frame}")
+        # logger.info(f"[get audio] {start_frame} and {end_frame}")
         
         if not os.path.isfile(os.path.join(self.audio_path, f"{uid}.wav")):
             video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
@@ -287,16 +287,11 @@ class ImagerLoader(torch.utils.data.Dataset):
             audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
             logger.info(f"writing {self.audio_path}/{uid}.wav")
             
-        while not os.path.exists(os.path.join(self.audio_path, f"{uid}.wav")):
-            time.sleep(1)
-
-        if os.path.isfile(os.path.join(self.audio_path, f"{uid}.wav")):
-            # read file
-            audio, sample_rate = torchaudio.load(
-                f"{self.audio_path}/{uid}.wav", normalize=True
-            )
-        else:
-            raise ValueError("%s isn't a file!" % os.path.join(self.audio_path, f"{uid}.wav"))
+       
+        audio, sample_rate = torchaudio.load(
+            f"{self.audio_path}/{uid}.wav", normalize=True
+        )
+    
         transform = torchaudio.transforms.Resample(sample_rate, 16000)
         audio = transform(audio)
         # transform = torchaudio.transforms.DownmixMono(channels_first=True)
@@ -308,10 +303,16 @@ class ImagerLoader(torch.utils.data.Dataset):
         # offset = int(end_frame/ 30 * 16000)
         onset = int(max((start_frame - 30) / 30 * 16000, 0))
         offset = int(min((end_frame + 30) / 30 * 16000, audio.size()[0] - 1))
-        crop_audio = audio[onset:offset]
         
-        # logger.info(f"{onset} and {offset}")
-        # logger.info(f"[get audio] crop audio shape {crop_audio.shape}")
+        crop_audio = audio[onset:offset]
+        if crop_audio.size()[0] == 0:
+            logger.info(f"{onset} and {offset}")
+            logger.info(f"{start_frame} and {end_frame}")
+            logger.info(f"[get audio] crop audio shape {crop_audio.shape} {uid}")
+            video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
+            audio = video.audio
+            audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
+            
         # if self.mode == 'eval':
         # l = offset - onset
         # crop_audio = np.zeros(l)

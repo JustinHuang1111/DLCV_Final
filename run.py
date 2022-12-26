@@ -40,16 +40,26 @@ def main(args):
     logger.info(pprint.pformat(vars(args)))
     logger.info(f"Model: {args.model}")
     logger.info(f"Using device: {device}")
+    logger.info("preprocess" if args.preprocess else "not preprocess")
+    
+    model = None
     if args.model == "BaselineLSTM":
         model = BaselineLSTM(args).to(device)
-    elif args.model == "ViViT":
-        model = ViViT()
-    model.to(device)
+    else:
+        model = ViViT().to(device)
+        
+        # If it is vivit, use our own checkpoint loader / BaselineLSTM -> Built in loader
+        logger.info(f"loading model {args.checkpoint}")
+        model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
     videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
+    train_loader = None;
+
+    
+    
     if not args.eval:
         datapath = os.path.join(ROOT_DIR, "data", "student_data", "train")
         train_dataset = ImagerLoader(
@@ -65,7 +75,7 @@ def main(args):
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
-            batch_sampler=SequenceBatchSampler(train_dataset, args.batch_size),
+            batch_sampler=SequenceBatchSampler(train_dataset, args.batch_size, shuffle=True),
             num_workers=args.num_workers,
             collate_fn=collate_fn,
             pin_memory=False,
@@ -114,31 +124,32 @@ def main(args):
 
     if not args.eval:
         logger.info("start training")
-        if args.model == "ViViT":
-            logger.info(f"loading model {args.checkpoint}")
-            model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
+        
         for epoch in range(args.epochs):
 
             train_loader.batch_sampler.set_epoch(epoch)
             # train for one epoch
-            train(train_loader, model, criterion, optimizer, epoch, device)
+            train(train_loader, model, criterion, optimizer, epoch, device, args)
 
+            # save a version before validating
             save_checkpoint(
                 {"epoch": epoch, "state_dict": model.state_dict(), "mAP": 0},
                 save_path=args.exp_path,
                 is_best=False,
                 timestamp=timestamp,
             )
+            
             # TODO: implement distributed evaluation
             # evaluate on validation set
             postprocess = PostProcessor(args)
-            mAP = validate(val_loader, model, postprocess, device)
+            mAP = validate(val_loader, model, postprocess, device, args)
 
             # remember best mAP in validation and save checkpoint
             is_best = mAP > best_mAP
             best_mAP = max(mAP, best_mAP)
             logger.info(f"mAP: {mAP:.4f} best mAP: {best_mAP:.4f}")
-
+            
+            # save a version after getting mAP score
             save_checkpoint(
                 {"epoch": epoch, "state_dict": model.state_dict(), "mAP": mAP},
                 save_path=args.exp_path,
@@ -146,13 +157,10 @@ def main(args):
                 timestamp=timestamp,
             )
 
-    else:
-        if args.model == "ViViT":
-            print(f"loading model {args.checkpoint}")
-            model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
+    else:        
         logger.info("start evaluating")
         postprocess = test_PostProcessor(args)
-        mAP = evaluate(test_loader, model, postprocess, device)
+        mAP = evaluate(test_loader, model, postprocess, device, args)
         print("Score mAP:", mAP)
         postprocess.mkfile()
 

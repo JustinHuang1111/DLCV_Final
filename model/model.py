@@ -12,6 +12,9 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from model.module import Attention, PreNorm, FeedForward
 
+from torchaudio.models.wav2vec2.utils import import_huggingface_model # for audio encoder
+from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+
 logger = logging.getLogger(__name__)
 
 
@@ -107,7 +110,11 @@ class ViViT(nn.Module):
         )
         # self.temporal_transformer = VisionEncoder(feature_dim=dim*scale_dim)
 
-        self.audio_encoder = ResNetSE()
+        
+        # self.audio_encoder = ResNetSE()
+        # self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+        original = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+        self.audio_encoder = import_huggingface_model(original)
 
         self.dropout = nn.Dropout(emb_dropout)
         self.pool = pool
@@ -124,11 +131,11 @@ class ViViT(nn.Module):
         x = self.to_patch_embedding(x)
         # [b, t, (h/patch_size)*(w/patch_size), dim]
         b, t, n, _ = x.shape
+        # logger.info(f"batch size: {b}, frames: {t}, n: {n}")
 
         cls_space_tokens = repeat(self.space_token, "() n d -> b t n d", b=b, t=t)
         x = torch.cat((cls_space_tokens, x), dim=2)
-
-        x += self.pos_embedding[:, t, : (n + 1)]
+        x += self.pos_embedding[:, :t, : (n + 1)]
         x = self.dropout(x)
         # [b, t, (h/patch_size)*(w/patch_size) + 1, dim]
 
@@ -149,11 +156,11 @@ class ViViT(nn.Module):
         # [b, d]
         print(x.size())
 
-        audio_out = self.audio_encoder(audio)
-        print("audio feature:", audio_out.size())
+        # input_values = self.processor(audio, return_tensors="pt", padding="longest").input_values
+        audio_out, _ = self.audio_encoder(audio)
+        logger.info("audio feature:", audio_out.size())
 
         whole_feature = torch.cat((x, audio_out), dim=1)
-        print(whole_feature.size())
 
         return self.mlp_head(whole_feature)
 
