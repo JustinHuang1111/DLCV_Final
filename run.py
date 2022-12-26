@@ -56,7 +56,7 @@ def main(args):
     torch.backends.cudnn.benchmark = False
 
     videopath = os.path.join(ROOT_DIR, "data", "student_data", "videos")
-    train_loader = None;
+    train_loader = None
 
     
     

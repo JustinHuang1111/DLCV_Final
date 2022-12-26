@@ -13,7 +13,7 @@ from einops.layers.torch import Rearrange
 from model.module import Attention, PreNorm, FeedForward
 
 from torchaudio.models.wav2vec2.utils import import_huggingface_model # for audio encoder
-from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+from transformers import Wav2Vec2ForCTC
 
 logger = logging.getLogger(__name__)
 
