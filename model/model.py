@@ -111,10 +111,10 @@ class ViViT(nn.Module):
         # self.temporal_transformer = VisionEncoder(feature_dim=dim*scale_dim)
 
         
-        # self.audio_encoder = ResNetSE()
+        self.audio_encoder = ResNetSE()
         # self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-        original = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
-        self.audio_encoder = import_huggingface_model(original)
+        # original = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+        # self.audio_encoder = import_huggingface_model(original)
 
         self.dropout = nn.Dropout(emb_dropout)
         self.pool = pool
@@ -157,8 +157,8 @@ class ViViT(nn.Module):
         print(x.size())
 
         # input_values = self.processor(audio, return_tensors="pt", padding="longest").input_values
-        audio_out, _ = self.audio_encoder(audio)
-        logger.info("audio feature:", audio_out.size())
+        audio_out = self.audio_encoder(audio)
+        # logger.info("audio feature:", audio_out.size())
 
         whole_feature = torch.cat((x, audio_out), dim=1)
 
