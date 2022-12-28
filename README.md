@@ -29,12 +29,21 @@ $ python run.py --preprocess --eval
 
 
 # How to inference 
+Make sure you preprocess the data
 To inference a csv, you need to run the following command:
 ```bash script= 
-$ python3 run.py --eval --checkpoint <checkpoint path> --num_worker <option> --device_id <option>
+$ python3 run.py --eval --checkpoint <checkpoint path> --num_worker <option> --device_id <option> --model <model name - BaselineLSTM or ViViT>
 ```
 Output csv file will be located in the following **./evalai_test/output/<exp_name>/results/pred.csv**
 To specify the threshold, you may check this file **./evalai_test/threhold.py**
+
+# How to Train
+Make sure you preprocess the data
+To train a model, you can run:
+```bash script= 
+$ python3 run.py  --num_worker <option> --device_id <option> --model <model name - BaselineLSTM or ViViT> --batch_size <batch size> --img_size <image size> --maxframe <maxframe>
+```
+
 
 # Submission Rules
 ### Deadline
