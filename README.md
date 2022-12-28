@@ -131,7 +131,11 @@ If you have any problems related to Final Project, you may
 bash preprocess.sh
 ```
 
+## Training
 ```shell script=
 bash train.sh 
+```
+## Inferencing
+```shell script=
 bash inference.sh <Path to checkpoint>
 ```
