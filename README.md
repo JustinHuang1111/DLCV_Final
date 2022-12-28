@@ -18,12 +18,14 @@ $ pip install -r requirements.txt
 ```shell script=
 bash preprocess.sh
 ```
-*For Training videos*
+
+**For the following two commands, we recommand you to run them twice to make sure there is no saving error**.     
+- *For Training videos*
 ```bash script=
 $ python run.py --preprocess 
 ```
 
-*For Testing videos*
+- *For Testing videos*
 ```bash script=
 $ python run.py --preprocess --eval
 ```
