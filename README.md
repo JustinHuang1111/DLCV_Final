@@ -15,7 +15,7 @@ $ pip install -r requirements.txt
 $ python run.py --preprocess 
 ```
 
-*For Training videos*
+*For Testing videos*
 ```bash script=
 $ python run.py --preprocess --eval
 ```
