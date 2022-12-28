@@ -10,8 +10,9 @@ $ pip install -r requirements.txt
 - install ttm-best.pth at [checkpoint](https://drive.google.com/drive/folders/1MGrhm3J1dKoWPSL3RvC3qb3QeiIqe9vi?usp=sharing)
 
 # Preprocess
-
+**Need to preprocess first before inference and train**
 **Please strictly follow the file structure**
+
 *For All*
 ```shell script=
 bash preprocess.sh
