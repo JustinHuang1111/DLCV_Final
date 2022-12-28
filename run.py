@@ -46,11 +46,12 @@ def main(args):
     if args.model == "BaselineLSTM":
         model = BaselineLSTM(args).to(device)
     else:
-        model = ViViT().to(device)
+        model = ViViT(args, device, num_frames=args.maxframe + 2).to(device)
         
         # If it is vivit, use our own checkpoint loader / BaselineLSTM -> Built in loader
-        logger.info(f"loading model {args.checkpoint}")
-        model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
+        if not args.checkpoint == "None":
+            logger.info(f"loading model {args.checkpoint}")
+            model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False

@@ -291,6 +291,8 @@ class ImagerLoader(torch.utils.data.Dataset):
         audio, sample_rate = torchaudio.load(
             f"{self.audio_path}/{uid}.wav", normalize=True
         )
+        
+            
     
         transform = torchaudio.transforms.Resample(sample_rate, 16000)
         audio = transform(audio)
@@ -299,19 +301,20 @@ class ImagerLoader(torch.utils.data.Dataset):
         audio = torch.mean(audio, dim=0)
         # logger.info(f"[get audio] orig audio shape {audio.shape}")
 
-        # onset = int(start_frame / 30 * 16000)
-        # offset = int(end_frame/ 30 * 16000)
-        onset = int(max((start_frame - 30) / 30 * 16000, 0))
-        offset = int(min((end_frame + 30) / 30 * 16000, audio.size()[0] - 1))
+        onset = int(start_frame / 30 * 16000)
+        offset = int(end_frame/ 30 * 16000)
+        # onset = int(max((start_frame - 30) / 30 * 16000, 0))
+        # offset = int(min((end_frame + 30) / 30 * 16000, 4799999))
         
         crop_audio = audio[onset:offset]
-        if crop_audio.size()[0] == 0:
-            logger.info(f"{onset} and {offset}")
-            logger.info(f"{start_frame} and {end_frame}")
-            logger.info(f"[get audio] crop audio shape {crop_audio.shape} {uid}")
-            video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
-            audio = video.audio
-            audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
+        
+        # if crop_audio.size()[0] == 0:
+        #     logger.info(f"{onset} and {offset}")
+        #     logger.info(f"{start_frame} and {end_frame}")
+        #     logger.info(f"[get audio] crop audio shape {crop_audio.shape} {uid}")
+        #     video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
+        #     audio = video.audio
+        #     audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
             
         # if self.mode == 'eval':
         # l = offset - onset
@@ -499,10 +502,11 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         # audio = transform(audio)
         audio = torch.mean(audio, dim=0)
 
-        onset = int(start_frame / 30 * 16000)
-        offset = int(end_frame / 30 * 16000)
-        if onset == offset:
-            onset, offset = onset - 16000, offset + 16000
+        # onset = int(start_frame / 30 * 16000)
+        # offset = int(end_frame / 30 * 16000)
+        onset = int(max((start_frame - 30) / 30 * 16000, 0))
+        offset = int(min((end_frame + 30) / 30 * 16000, 4799999))
+   
         crop_audio = audio[onset:offset]
         return crop_audio.to(torch.float32)
 

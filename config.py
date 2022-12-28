@@ -50,6 +50,9 @@ argparser.add_argument("--preprocess", action="store_true", help="Running type")
 argparser.add_argument(
     "--model", type=str, default="BaselineLSTM", help="Model architecture"
 )
+argparser.add_argument(
+    "--audio_encoder", type=str, default="ResNetSE", help="Model architecture"
+)
 argparser.add_argument("--rank", type=int, default=0, help="Rank id")
 argparser.add_argument("--device_id", type=int, default=0, help="Device id")
 argparser.add_argument(

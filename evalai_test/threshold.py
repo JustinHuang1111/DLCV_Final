@@ -1,9 +1,9 @@
 import csv
 import pandas as pd
 
-threshold = 0.5
+threshold = 0.58
 inputfile = (
-    "/home/stan/final-project-challenge-1-ilovedlcv/evalai_test/output/result/pred.csv"
+    "/home/eegroup/ee50526/b09901062/Final/evalai_test/output/result/pred.csv"
 )
 outputfile = f"./pred_{threshold}.csv"
 pred = []

@@ -13,7 +13,7 @@ from einops.layers.torch import Rearrange
 from model.module import Attention, PreNorm, FeedForward
 
 from torchaudio.models.wav2vec2.utils import import_huggingface_model # for audio encoder
-from transformers import Wav2Vec2ForCTC
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,8 @@ class VisionEncoder(nn.Module):
 class ViViT(nn.Module):
     def __init__(
         self,
+        args,
+        device,
         image_size=224,
         patch_size=16,
         num_classes=2,
@@ -73,6 +75,8 @@ class ViViT(nn.Module):
         dropout=0.0,
         emb_dropout=0.0,
         scale_dim=4,
+        
+        
     ):
         super().__init__()
 
@@ -110,11 +114,16 @@ class ViViT(nn.Module):
         )
         # self.temporal_transformer = VisionEncoder(feature_dim=dim*scale_dim)
 
+        self.device = device
+        self.audio_encoder_args = args.audio_encoder
+        if self.audio_encoder_args == "ResNetSE":
+            self.audio_encoder = ResNetSE()
         
-        self.audio_encoder = ResNetSE()
-        # self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-        # original = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
-        # self.audio_encoder = import_huggingface_model(original)
+        elif self.audio_encoder_args == "huggingface":
+            self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+            original = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+            self.audio_encoder = import_huggingface_model(original)
+            self.audio_matcher = nn.Linear(32*400, 512)
 
         self.dropout = nn.Dropout(emb_dropout)
         self.pool = pool
@@ -156,9 +165,22 @@ class ViViT(nn.Module):
         # [b, d]
         print(x.size())
 
-        # input_values = self.processor(audio, return_tensors="pt", padding="longest").input_values
-        audio_out = self.audio_encoder(audio)
-        # logger.info("audio feature:", audio_out.size())
+        audio_out = None
+        if self.audio_encoder_args == "ResNetSE":
+            audio_out = self.audio_encoder(audio)
+        
+        elif self.audio_encoder_args == "huggingface":
+            # input_values = self.processor(audio, return_tensors="pt", padding="longest").input_values
+            audio_out, _ = self.audio_encoder(audio)
+            b, t, _ = audio_out.shape
+            target = torch.zeros(b, 400, 32).to(self.device)
+            target[:, :t, :] = audio_out
+            target = target.view(b, 400*32)
+            audio_out = self.audio_matcher(target)
+        
+        
+        
+        print("audio feature:", audio_out.size())
 
         whole_feature = torch.cat((x, audio_out), dim=1)
 

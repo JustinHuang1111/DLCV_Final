@@ -9,6 +9,18 @@ $ pip install -r requirements.txt
 ```
 - install ttm-best.pth at [checkpoint](https://drive.google.com/drive/folders/1MGrhm3J1dKoWPSL3RvC3qb3QeiIqe9vi?usp=sharing)
 
+# Preprocess
+*For Training videos*
+```bash script=
+$ python run.py --preprocess 
+```
+
+*For Training videos*
+```bash script=
+$ python run.py --preprocess --eval
+```
+
+
 # How to inference 
 To inference a csv, you need to run the following command:
 ```bash script= 

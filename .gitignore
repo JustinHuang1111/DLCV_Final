@@ -18,3 +18,5 @@ sample_submission.csv
 extracted_frames
 extracted_audio
 *.zip
+
+*.csv

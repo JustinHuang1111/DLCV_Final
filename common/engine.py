@@ -129,4 +129,5 @@ def evaluate(val_loader, model, postprocess, device, args):
                         i, len(val_loader), batch_time=batch_time
                     )
                 )
-    postprocess.save()
+    if not args.preprocess:
+        postprocess.save()
