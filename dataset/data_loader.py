@@ -308,13 +308,13 @@ class ImagerLoader(torch.utils.data.Dataset):
         
         crop_audio = audio[onset:offset]
         
-        # if crop_audio.size()[0] == 0:
-        #     logger.info(f"{onset} and {offset}")
-        #     logger.info(f"{start_frame} and {end_frame}")
-        #     logger.info(f"[get audio] crop audio shape {crop_audio.shape} {uid}")
-        #     video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
-        #     audio = video.audio
-        #     audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
+        if crop_audio.size()[0] == 0:
+            logger.info(f"{onset} and {offset}")
+            logger.info(f"{start_frame} and {end_frame}")
+            logger.info(f"[get audio] crop audio shape {crop_audio.shape} {uid}")
+            video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
+            audio = video.audio
+            audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
             
         # if self.mode == 'eval':
         # l = offset - onset
@@ -508,6 +508,12 @@ class test_ImagerLoader(torch.utils.data.Dataset):
         offset = int(min((end_frame + 30) / 30 * 16000, 4799999))
    
         crop_audio = audio[onset:offset]
+        if crop_audio.size()[0] == 0:
+            logger.info(f"{uid} size is equal to 0, resaving")
+            video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
+            audio = video.audio
+            audio.write_audiofile(os.path.join(self.audio_path, f"{uid}.wav"))
+            logger.info(f"finish resaving!")
         return crop_audio.to(torch.float32)
 
     def _get_target(self, index):
