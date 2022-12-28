@@ -10,6 +10,12 @@ $ pip install -r requirements.txt
 - install ttm-best.pth at [checkpoint](https://drive.google.com/drive/folders/1MGrhm3J1dKoWPSL3RvC3qb3QeiIqe9vi?usp=sharing)
 
 # Preprocess
+
+**Please strictly follow the file structure**
+*For All*
+```shell script=
+bash preprocess.sh
+```
 *For Training videos*
 ```bash script=
 $ python run.py --preprocess 
