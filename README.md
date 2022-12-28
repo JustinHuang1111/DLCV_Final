@@ -125,7 +125,13 @@ If you have any problems related to Final Project, you may
 ```
 # How to run your code?
 * TODO: Please provide the scripts for TAs to reproduce your results, including training and inference. For example, 
+
+**Need to preprocess first before inference and train**
 ```shell script=
-bash train.sh <Path to videos folder> <Path to seg folder> <Path to bbox folder>
-bash inference.sh <Path to videos folder> <Path to seg folder> <Path to bbox folder> <Path to output csv file>
+bash preprocess.sh
+```
+
+```shell script=
+bash train.sh 
+bash inference.sh <Path to checkpoint>
 ```

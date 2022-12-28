@@ -162,6 +162,8 @@ class ViViT(nn.Module):
         x = self.temporal_transformer(x)
         # [b, t+1, d]
         x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
+        
+        x += torch.randn(x.size()).to(self.device)
         # [b, d]
         print(x.size())
 
