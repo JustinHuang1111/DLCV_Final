@@ -127,6 +127,7 @@ If you have any problems related to Final Project, you may
 * TODO: Please provide the scripts for TAs to reproduce your results, including training and inference. For example, 
 
 **Need to preprocess first before inference and train**
+**Please strictly follow the file structure**
 ```shell script=
 bash preprocess.sh
 ```
