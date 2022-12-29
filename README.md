@@ -7,7 +7,7 @@ Please pay attention to them when fetching this version
 ```bash script=
 $ pip install -r requirements.txt
 ```
-- install best.pth at [checkpoint](https://www.dropbox.com/s/pdoqk7xz0ci5621/best.pth?dl=0)
+- install best.pth at [checkpoint](https://www.dropbox.com/scl/fo/r12wev6kbfghd2wkzqwne/h?dl=0&rlkey=i1k06jo5yqzahyvlg2ssmqdde)
 
 # Preprocess
 **Need to preprocess first before inference and train**

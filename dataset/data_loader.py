@@ -208,7 +208,9 @@ class ImagerLoader(torch.utils.data.Dataset):
         video_size = self.img_size
         uid, personid, _, start_frame, end_frame, _ = self.segments[index]
         # logger.info(f"[get audio] {start_frame} and {end_frame}")
-        
+        # uid = "be99e9e2-82f7-4f1f-aff5-371834fde0da"
+        # start_frame = 3052
+        # end_frame = 3082
         cap = cv2.VideoCapture(os.path.join(self.video_path, f"{uid}.mp4"))
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -280,7 +282,8 @@ class ImagerLoader(torch.utils.data.Dataset):
     def _get_audio(self, index):
         uid, _, _, start_frame, end_frame, _ = self.segments[index]
         # logger.info(f"[get audio] {start_frame} and {end_frame}")
-        
+        # uid = "be99e9e2-82f7-4f1f-aff5-371834fde0da"
+
         if not os.path.isfile(os.path.join(self.audio_path, f"{uid}.wav")):
             video = VideoFileClip(os.path.join(self.video_path, f"{uid}.mp4"))
             audio = video.audio
