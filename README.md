@@ -35,12 +35,14 @@ $ python run.py --preprocess --eval
 Make sure you preprocess the data
 To inference a csv, you need to run the following command:
 ```bash script= 
-$ python3 run.py --eval --checkpoint <checkpoint path> --num_worker <option> --device_id <option> --model <model name - BaselineLSTM or ViViT>
+$ python3 run.py --eval --checkpoint <checkpoint path> --model <model name - BaselineLSTM or ViViT> --num_worker <option> --device_id <option> 
 ```
+For our best model, please set `--img_size 224 --maxframe 398`  
+
 Output csv file will be located in the following **./evalai_test/output/<exp_name>/results/pred.csv**
 To specify the threshold, you may check this file **./evalai_test/threhold.py**
 ```bash script= 
-$ python ./evalai_test/threshold.py --threshold <threshold value> --input_file <path to input file>
+$ python ./evalai_test/threshold.py --threshold <threshold value> --input_file <path to input file> 
 
 ```
 
