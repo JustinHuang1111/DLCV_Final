@@ -464,6 +464,8 @@ class test_ImagerLoader(torch.utils.data.Dataset):
                         cv2.imwrite(
                             f"./extracted_frames/{uid}/img_{i:05d}_{personid}.png", face
                         )
+                        logger.info(f"writing {uid}/img_{i:05d}_{personid}.png")
+                        
                 try:
                     face = cv2.resize(face, (video_size, video_size))
                 except:

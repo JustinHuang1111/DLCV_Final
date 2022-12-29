@@ -64,6 +64,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
                         loss=avg_loss,
                     )
                 )
+        else: 
+            logger.info(f"preprocess [{i}/{len(train_loader)}]")
 
 
 def validate(val_loader, model, postprocess, device, args):
@@ -93,6 +95,8 @@ def validate(val_loader, model, postprocess, device, args):
                         i, len(val_loader), batch_time=batch_time
                     )
                 )
+        else: 
+            logger.info(f"preprocess [{i}/{len(val_loader)}]")
     mAP = 0
     if not args.preprocess:
         postprocess.save()
@@ -129,5 +133,8 @@ def evaluate(val_loader, model, postprocess, device, args):
                         i, len(val_loader), batch_time=batch_time
                     )
                 )
+        else:
+            logger.info(f"preprocess [{i}/{len(val_loader)}]")
+        
     if not args.preprocess:
         postprocess.save()
