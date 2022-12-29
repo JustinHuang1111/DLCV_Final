@@ -65,6 +65,10 @@ $ python3 run.py  --num_worker <option> --device_id <option> --model <model name
 │   └── utils.py
 ├── config.py
 ├── data 
+│   └── student_data
+│       ├── train
+│       ├── test
+│       └── videos
 ├── dataset
 │   ├── data_loader.py
 │   ├── __init__.py
