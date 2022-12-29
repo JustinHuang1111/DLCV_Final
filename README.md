@@ -18,12 +18,14 @@ $ pip install -r requirements.txt
 ```shell script=
 bash preprocess.sh
 ```
-*For Training videos*
+
+**For the following two commands, we recommand you to run them twice to make sure there is no saving error**.     
+- *For Training videos*
 ```bash script=
 $ python run.py --preprocess 
 ```
 
-*For Testing videos*
+- *For Testing videos*
 ```bash script=
 $ python run.py --preprocess --eval
 ```
@@ -130,10 +132,10 @@ $ python3 run.py  --num_worker <option> --device_id <option> --model <model name
 └── test.py
 ```
 # How to run your code?
-* TODO: Please provide the scripts for TAs to reproduce your results, including training and inference. For example, 
-
-**Need to preprocess first before inference and train**
-**Please strictly follow the file structure**
+Bash is not thoroughly tested. If possible, use the python commands above.    
+**Need to preprocess first before inference and train**   
+**Please strictly follow the file structure**   
+ 
 ```shell script=
 bash preprocess.sh
 ```
