@@ -39,6 +39,10 @@ $ python3 run.py --eval --checkpoint <checkpoint path> --num_worker <option> --d
 ```
 Output csv file will be located in the following **./evalai_test/output/<exp_name>/results/pred.csv**
 To specify the threshold, you may check this file **./evalai_test/threhold.py**
+```bash script= 
+$ python ./evalai_test/threshold.py --threshold <threshold value> --input_file <path to input file>
+
+```
 
 # How to Train
 Make sure you preprocess the data
